@@ -1,0 +1,61 @@
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.4 system-ui, -apple-system, Segoe UI, sans-serif; color: #1d1f23; background: #f5f6f8; }
+button { font: inherit; padding: 4px 10px; border: 1px solid #c8ccd3; background: #fff; border-radius: 4px; cursor: pointer; }
+button:disabled { opacity: 0.55; cursor: not-allowed; }
+button.link { border: none; background: none; color: #2457c5; padding: 2px 4px; }
+input, select { font: inherit; padding: 4px 6px; border: 1px solid #c8ccd3; border-radius: 4px; }
+.center { display: flex; align-items: center; justify-content: center; height: 100%; min-height: 60vh; }
+.muted { color: #6b717c; }
+.error { color: #b3261e; margin: 6px 0; }
+.error.banner { background: #fdecea; padding: 4px 10px; margin: 0; }
+.card { background: #fff; border: 1px solid #dde0e5; border-radius: 8px; padding: 24px; }
+.auth { display: flex; flex-direction: column; gap: 10px; width: 320px; }
+.auth label { display: flex; flex-direction: column; gap: 4px; }
+.app { display: flex; flex-direction: column; height: 100vh; }
+.topbar { display: flex; align-items: center; gap: 12px; padding: 8px 14px; background: #1f2937; color: #e5e7eb; }
+.topbar .brand { color: #fff; font-weight: 600; text-decoration: none; }
+.topbar .link { color: #c7d2fe; }
+.spacer { flex: 1; }
+.page { padding: 20px; max-width: 720px; }
+.list { list-style: none; padding: 0; }
+.list li { padding: 6px 0; }
+.row { display: flex; gap: 6px; margin: 8px 0; }
+.row.small input { min-width: 0; flex: 1; }
+.badge { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: #e5e7eb; }
+.badge.owner { background: #fde68a; } .badge.editor { background: #bbf7d0; } .badge.viewer { background: #e0e7ff; }
+.workspace { display: flex; flex: 1; min-height: 0; }
+.sidebar { width: 280px; padding: 10px; border-right: 1px solid #dde0e5; background: #fff; overflow: auto; }
+.sidebar h3 { margin: 4px 0 10px; font-size: 15px; }
+.tree { list-style: none; margin: 0; padding: 0; }
+.tree button { border: none; background: none; width: 100%; text-align: left; padding: 2px 4px; }
+.tree button.active { background: #e0e7ff; }
+.members { list-style: none; padding: 0; }
+.members li { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
+.members li span:first-child { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.tabs { display: flex; gap: 2px; background: #eceef1; padding: 4px 4px 0; min-height: 30px; }
+.tab { display: flex; background: #e1e4e8; border-radius: 4px 4px 0 0; }
+.tab.active { background: #fff; }
+.tab button { border: none; background: none; }
+.editor-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.editor-toolbar { display: flex; align-items: center; gap: 8px; padding: 4px 8px; background: #fff; border-bottom: 1px solid #eee; }
+.monaco-host { flex: 1; min-height: 0; }
+.statusbar { display: flex; gap: 14px; align-items: center; padding: 3px 10px; font-size: 12px; background: #eceef1; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #999; }
+.dot.online { background: #16a34a; } .dot.connecting { background: #eab308; } .dot.offline { background: #dc2626; }
+.avatar { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; color: #fff; font-size: 12px; align-items: center; justify-content: center; margin-left: -4px; border: 2px solid #fff; }
+.yRemoteSelectionHead { position: absolute; height: 100%; box-sizing: border-box; }
+.banner.info { background: #e0f2fe; color: #075985; padding: 4px 14px; font-size: 13px; }
+.dot.outdated { background: #7c3aed; }
+:focus-visible { outline: 2px solid #2457c5; outline-offset: 1px; }
+
+/* Narrow screens: the file tree stacks above the editor and the toolbar wraps. */
+@media (max-width: 760px) {
+  .workspace { flex-direction: column; }
+  .sidebar { width: auto; max-height: 38vh; border-right: none; border-bottom: 1px solid #dde0e5; }
+  .editor-toolbar, .statusbar { flex-wrap: wrap; row-gap: 2px; }
+  .tabs { overflow-x: auto; }
+  .page { padding: 12px; }
+  .auth { width: 100%; max-width: 320px; }
+  .topbar { flex-wrap: wrap; }
+}

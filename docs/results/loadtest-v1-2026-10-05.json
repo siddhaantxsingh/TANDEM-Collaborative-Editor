@@ -1,0 +1,7 @@
+[
+  {"setup": "1 node, load generator on the same 2-vCPU VM", "nodes": 1, "clients": 50, "documents": 5, "seconds": 30, "edits": 6622, "editsPerSecond": 221,
+   "latencyMs": {"p50": 24, "p95": 117, "p99": 157, "samples": 42012}, "settleMs": 148, "allSaved": true, "converged": true, "databaseMatches": true},
+  {"setup": "2 nodes + Redis, load generator on the same 2-vCPU VM", "nodes": 2, "clients": 60, "documents": 4, "seconds": 30, "edits": 5506, "editsPerSecond": 184,
+   "latencyMs": {"p50": 57, "p95": 353, "p99": 457, "samples": 53410}, "settleMs": 51, "allSaved": true, "converged": true, "databaseMatches": true,
+   "metrics_node_8082": {"tandem_updates_persisted_total": 2752, "tandem_persist_failures_total": 0, "tandem_compactions_total": 4, "tandem_rate_limited_total": 0, "tandem_backpressure_disconnects_total": 0}}
+]

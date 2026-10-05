@@ -1,0 +1,50 @@
+# Local multi-node deployment: PostgreSQL, Redis, two app nodes and nginx as
+# the load balancer (any node can serve any document; no sticky sessions).
+#   cp .env.example .env   (set real secrets)
+#   docker compose up --build    then open http://localhost:8080
+# Secrets come from the environment / .env file, never from this file.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: tandem
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 20
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+  app1: &app
+    build: .
+    environment: &appenv
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?}@postgres:5432/tandem
+      REDIS_URL: redis://redis:6379
+      NODE_ID: app1
+      ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost:8080}
+      TRUST_PROXY: "true" # reachable only through nginx (no published port)
+      METRICS_TOKEN: ${METRICS_TOKEN:?set METRICS_TOKEN in .env}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false} # true behind HTTPS
+      LOG_LEVEL: info
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+  app2:
+    <<: *app
+    environment:
+      <<: *appenv
+      NODE_ID: app2
+  lb:
+    image: nginx:1.27
+    volumes: ["./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro"]
+    ports: ["8080:80"]
+    depends_on: [app1, app2]
+volumes:
+  pgdata:

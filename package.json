@@ -1,0 +1,30 @@
+{
+  "name": "tandem",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Real-time collaborative code editor (CRDT, WebSocket, PostgreSQL)",
+  "workspaces": [
+    "packages/protocol",
+    "packages/server",
+    "packages/client"
+  ],
+  "scripts": {
+    "build": "npm run build -w @tandem/protocol && npm run build -w @tandem/server && npm run build -w @tandem/client",
+    "typecheck": "tsc -b packages/protocol packages/server && npm run typecheck -w @tandem/client",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "lint": "tsc -b packages/protocol packages/server --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.4",
+    "fast-check": "^4.10.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  },
+  "type": "module"
+}

@@ -1,0 +1,150 @@
+# run 1 (2026-10-05 14:39 UTC, propagation recovery only)
+[14:39:48.648] network partition of node 1 for 8 s (half-open sockets)
+[14:39:56.955]   recovered in 302 ms
+[14:39:58.456] 200 ms added latency on node 1 for 5 s
+[14:40:03.690]   recovered in 233 ms
+[14:40:05.190] reconnect storm (all clients drop at once)
+[14:40:05.376]   recovered in 185 ms
+[14:40:06.877] SIGKILL node 19101, restart after 3 s
+[14:40:11.428]   recovered in 1234 ms
+[14:40:12.928] restart Redis
+[14:40:13.480]   recovered in 20 ms
+[14:40:14.980] stop PostgreSQL for 4 s
+{"time":"2026-10-05T14:40:15.030Z","level":"error","msg":"database pool error","node":"c19102","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T14:40:15.034Z","level":"error","msg":"database pool error","node":"c19102","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T14:40:15.034Z","level":"error","msg":"database pool error","node":"c19102","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T14:40:15.040Z","level":"error","msg":"database pool error","node":"c19102","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T14:40:15.041Z","level":"error","msg":"database pool error","node":"c19101","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T14:40:15.138Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"fg2BNbekVTP6ultW","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":100}
+{"time":"2026-10-05T14:40:15.139Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"fg2BNbekVTP6ultW","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":100}
+{"time":"2026-10-05T14:40:15.239Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"fg2BNbekVTP6ultW","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":200}
+{"time":"2026-10-05T14:40:15.241Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"fg2BNbekVTP6ultW","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":200}
+{"time":"2026-10-05T14:40:15.441Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"fg2BNbekVTP6ultW","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":400}
+{"time":"2026-10-05T14:40:15.443Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"fg2BNbekVTP6ultW","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":400}
+{"time":"2026-10-05T14:40:15.842Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"fg2BNbekVTP6ultW","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":800}
+{"time":"2026-10-05T14:40:15.844Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"fg2BNbekVTP6ultW","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":800}
+{"time":"2026-10-05T14:40:16.643Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"fg2BNbekVTP6ultW","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":1600}
+{"time":"2026-10-05T14:40:16.654Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"fg2BNbekVTP6ultW","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":1600}
+{"time":"2026-10-05T14:40:18.244Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"fg2BNbekVTP6ultW","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":3200}
+{"time":"2026-10-05T14:40:18.256Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"fg2BNbekVTP6ultW","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":3200}
+[14:40:21.354]   recovered in 20 ms
+[14:40:22.854] SIGKILL node 19102, restart after 1.5 s
+[14:40:25.603]   recovered in 691 ms
+[14:40:27.103] stopped editing after 5928 inserts; waiting for convergence
+{
+  "events": [
+    {
+      "fault": "network partition of node 1 for 8 s (half-open sockets)",
+      "recoveredMs": 302
+    },
+    {
+      "fault": "200 ms added latency on node 1 for 5 s",
+      "recoveredMs": 233
+    },
+    {
+      "fault": "reconnect storm (all clients drop at once)",
+      "recoveredMs": 185
+    },
+    {
+      "fault": "SIGKILL node 19101, restart after 3 s",
+      "recoveredMs": 1234
+    },
+    {
+      "fault": "restart Redis",
+      "recoveredMs": 20
+    },
+    {
+      "fault": "stop PostgreSQL for 4 s",
+      "recoveredMs": 20
+    },
+    {
+      "fault": "SIGKILL node 19102, restart after 1.5 s",
+      "recoveredMs": 691
+    }
+  ],
+  "inserts": 5928,
+  "allSaved": true,
+  "converged": true,
+  "missingOrDuplicated": 0,
+  "databaseMatches": true
+}
+# run 2 (2026-10-05 14:40 UTC, propagation + acknowledgement recovery)
+[14:40:50.410] network partition of node 1 for 8 s (half-open sockets)
+[14:40:58.729]   propagation recovered in 297 ms, acknowledgements in 120 ms
+[14:41:00.230] 200 ms added latency on node 1 for 5 s
+[14:41:05.517]   propagation recovered in 246 ms, acknowledgements in 266 ms
+[14:41:07.018] reconnect storm (all clients drop at once)
+[14:41:07.249]   propagation recovered in 210 ms, acknowledgements in 210 ms
+[14:41:08.750] SIGKILL node 19101, restart after 3 s
+[14:41:12.456]   propagation recovered in 92 ms, acknowledgements in 63 ms
+[14:41:13.957] restart Redis
+[14:41:14.527]   propagation recovered in 19 ms, acknowledgements in 19 ms
+[14:41:16.028] stop PostgreSQL for 4 s
+{"time":"2026-10-05T14:41:16.082Z","level":"error","msg":"database pool error","node":"c19101","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T14:41:16.082Z","level":"error","msg":"database pool error","node":"c19101","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T14:41:16.083Z","level":"error","msg":"database pool error","node":"c19101","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T14:41:16.083Z","level":"error","msg":"database pool error","node":"c19101","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T14:41:16.087Z","level":"error","msg":"database pool error","node":"c19102","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T14:41:16.087Z","level":"error","msg":"database pool error","node":"c19102","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T14:41:16.087Z","level":"error","msg":"database pool error","node":"c19102","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T14:41:16.088Z","level":"error","msg":"database pool error","node":"c19102","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T14:41:16.176Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"3EksnJtEHtQBoHQd","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":100}
+{"time":"2026-10-05T14:41:16.187Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"3EksnJtEHtQBoHQd","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":100}
+{"time":"2026-10-05T14:41:16.281Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"3EksnJtEHtQBoHQd","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":200}
+{"time":"2026-10-05T14:41:16.291Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"3EksnJtEHtQBoHQd","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":200}
+{"time":"2026-10-05T14:41:16.482Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"3EksnJtEHtQBoHQd","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":400}
+{"time":"2026-10-05T14:41:16.493Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"3EksnJtEHtQBoHQd","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":400}
+{"time":"2026-10-05T14:41:16.884Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"3EksnJtEHtQBoHQd","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":800}
+{"time":"2026-10-05T14:41:16.895Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"3EksnJtEHtQBoHQd","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":800}
+{"time":"2026-10-05T14:41:17.694Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"3EksnJtEHtQBoHQd","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":1600}
+{"time":"2026-10-05T14:41:17.698Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"3EksnJtEHtQBoHQd","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":1600}
+{"time":"2026-10-05T14:41:19.296Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"3EksnJtEHtQBoHQd","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":3200}
+{"time":"2026-10-05T14:41:19.305Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"3EksnJtEHtQBoHQd","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":3200}
+[14:41:22.609]   propagation recovered in 1 ms, acknowledgements in 215 ms
+[14:41:24.109] SIGKILL node 19102, restart after 1.5 s
+[14:41:27.017]   propagation recovered in 942 ms, acknowledgements in 921 ms
+[14:41:28.518] stopped editing after 5872 inserts; waiting for convergence
+{
+  "events": [
+    {
+      "fault": "network partition of node 1 for 8 s (half-open sockets)",
+      "recoveredMs": 297,
+      "durableMs": 120
+    },
+    {
+      "fault": "200 ms added latency on node 1 for 5 s",
+      "recoveredMs": 246,
+      "durableMs": 266
+    },
+    {
+      "fault": "reconnect storm (all clients drop at once)",
+      "recoveredMs": 210,
+      "durableMs": 210
+    },
+    {
+      "fault": "SIGKILL node 19101, restart after 3 s",
+      "recoveredMs": 92,
+      "durableMs": 63
+    },
+    {
+      "fault": "restart Redis",
+      "recoveredMs": 19,
+      "durableMs": 19
+    },
+    {
+      "fault": "stop PostgreSQL for 4 s",
+      "recoveredMs": 1,
+      "durableMs": 215
+    },
+    {
+      "fault": "SIGKILL node 19102, restart after 1.5 s",
+      "recoveredMs": 942,
+      "durableMs": 921
+    }
+  ],
+  "inserts": 5872,
+  "allSaved": true,
+  "converged": true,
+  "missingOrDuplicated": 0,
+  "databaseMatches": true
+}

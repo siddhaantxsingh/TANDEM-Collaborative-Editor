@@ -1,0 +1,24 @@
+{
+  "name": "@tandem/server",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "start": "node dist/main.js",
+    "dev": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@tandem/protocol": "0.2.0",
+    "ioredis": "^5.4.0",
+    "pg": "^8.13.0",
+    "ws": "^8.18.0",
+    "yjs": "^13.6.20",
+    "y-protocols": "^1.0.6",
+    "lib0": "^0.2.114"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.0",
+    "@types/ws": "^8.5.0"
+  }
+}

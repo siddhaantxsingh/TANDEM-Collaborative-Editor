@@ -1,0 +1,25 @@
+{
+  "name": "@tandem/protocol",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "lib0": "^0.2.114",
+    "yjs": "^13.6.20",
+    "y-protocols": "^1.0.6"
+  }
+}

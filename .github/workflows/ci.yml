@@ -1,0 +1,49 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_HOST_AUTH_METHOD: trust }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 20
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+    env:
+      TEST_DATABASE_ADMIN_URL: postgres://postgres@127.0.0.1:5432/postgres
+      TEST_REDIS_URL: redis://127.0.0.1:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run build
+      - run: npm run typecheck
+      - name: Unit, integration, property and fuzz tests
+        run: npx vitest run
+      - name: End-to-end browser test
+        run: npx playwright install --with-deps chromium && npx playwright test
+      - name: Smoke and load test (single node, verifies convergence and database agreement)
+        env: { METRICS_TOKEN: ci-metrics-token }
+        run: |
+          psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE tandem_load"
+          PORT=8081 STATIC_DIR=packages/client/dist DATABASE_URL=postgres://postgres@127.0.0.1:5432/tandem_load node packages/server/dist/main.js &
+          for i in $(seq 50); do curl -fs http://127.0.0.1:8081/health/ready && break; sleep 0.2; done
+          npx tsx tools/smoke.ts --url http://127.0.0.1:8081 --phase write --state smoke.json
+          npx tsx tools/loadtest.ts --url http://127.0.0.1:8081 --clients 30 --docs 3 --seconds 15 --rate 4 --storm 1
+      - name: Chaos test (node kills; Redis/PostgreSQL restarts are not possible on service containers)
+        run: npx tsx tools/chaos.ts
+
+  docker:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t tandem:ci .
+      - name: Image runs as non-root
+        run: test "$(docker run --rm --entrypoint id tandem:ci -u)" != "0"
+      - run: cp .env.example .env && docker compose config -q

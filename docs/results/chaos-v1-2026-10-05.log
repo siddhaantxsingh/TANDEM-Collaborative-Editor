@@ -1,0 +1,40 @@
+[05:25:23.463] SIGKILL node 19101
+[05:25:26.464] restart node 19101
+[05:25:28.881] restart Redis
+[05:25:32.411] stop PostgreSQL
+{"time":"2026-10-05T05:25:32.435Z","level":"error","msg":"database pool error","node":"c19102","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T05:25:32.437Z","level":"error","msg":"database pool error","node":"c19102","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T05:25:32.438Z","level":"error","msg":"database pool error","node":"c19102","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T05:25:32.442Z","level":"error","msg":"database pool error","node":"c19102","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T05:25:32.444Z","level":"error","msg":"database pool error","node":"c19101","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T05:25:32.445Z","level":"error","msg":"database pool error","node":"c19101","err":"terminating connection due to administrator command"}
+{"time":"2026-10-05T05:25:32.535Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"owIIz0mWH7V29i9y","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":100}
+{"time":"2026-10-05T05:25:32.535Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"owIIz0mWH7V29i9y","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":100}
+{"time":"2026-10-05T05:25:32.650Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"owIIz0mWH7V29i9y","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":200}
+{"time":"2026-10-05T05:25:32.652Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"owIIz0mWH7V29i9y","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":200}
+{"time":"2026-10-05T05:25:32.851Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"owIIz0mWH7V29i9y","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":400}
+{"time":"2026-10-05T05:25:32.853Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"owIIz0mWH7V29i9y","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":400}
+{"time":"2026-10-05T05:25:33.252Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"owIIz0mWH7V29i9y","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":800}
+{"time":"2026-10-05T05:25:33.254Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"owIIz0mWH7V29i9y","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":800}
+{"time":"2026-10-05T05:25:34.055Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"owIIz0mWH7V29i9y","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":1600}
+{"time":"2026-10-05T05:25:34.056Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"owIIz0mWH7V29i9y","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":1600}
+{"time":"2026-10-05T05:25:35.656Z","level":"error","msg":"persisting updates failed; will retry","node":"c19102","docId":"owIIz0mWH7V29i9y","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":3200}
+{"time":"2026-10-05T05:25:35.657Z","level":"error","msg":"persisting updates failed; will retry","node":"c19101","docId":"owIIz0mWH7V29i9y","err":"connect ECONNREFUSED 127.0.0.1:5432","delayMs":3200}
+[05:25:36.531] start PostgreSQL
+[05:25:39.662] SIGKILL node 19102 and restart
+[05:25:43.739] stopped editing after 3424 inserts; waiting for convergence
+{
+  "events": [
+    "SIGKILL node 19101",
+    "restart node 19101",
+    "restart Redis",
+    "stop PostgreSQL",
+    "start PostgreSQL",
+    "SIGKILL node 19102 and restart"
+  ],
+  "inserts": 3424,
+  "allSaved": true,
+  "converged": true,
+  "missingOrDuplicated": 0,
+  "databaseMatches": true
+}

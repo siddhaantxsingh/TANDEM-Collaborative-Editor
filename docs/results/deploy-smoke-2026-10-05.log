@@ -1,0 +1,133 @@
+
+=== image tandem:final
+size 459779289 bytes, user node
+
+=== start two nodes and nginx
+uid=1000(node) gid=1000(node) groups=1000(node)
+
+=== smoke checks through nginx
+PASS  GET /health/live  (200)
+PASS  GET /health/ready (database reachable)  ({"status":"ok","checks":{"accepting":true,"database":true,"bus":true}})
+PASS  GET / serves the app  (200)
+PASS  Content-Security-Policy header
+PASS  X-Frame-Options DENY
+PASS  service worker served, not cached long-term
+PASS  /metrics not publicly readable  (404)
+PASS  request id returned  (a72c0c15fa06879620813a74ab1a7650)
+PASS  register  (201)
+PASS  session cookie HttpOnly + SameSite
+PASS  GET /api/me with the session
+PASS  cross-origin POST refused  (403)
+PASS  create workspace and document
+PASS  another user cannot read the document (IDOR)  (404)
+PASS  anonymous request refused  (401)
+PASS  WebSocket join + sync through the load balancer  (51 ms)
+PASS  edit acknowledged (committed)  (50 ms)
+PASS  stored content matches
+PASS  cross-origin WebSocket refused  (403)
+SMOKE TEST PASSED
+metrics on a node: without token 404, with token 200
+client address recorded behind the proxy: 127.0.0.1
+
+=== load through nginx: 200 clients, 20 s, reconnect storm
+connected 200/200 clients (1 generator processes) to 1 node(s), 20 documents in 1414 ms; editing 20s at 2/s each
+{"at":"2026-10-05T14:50:32.467Z","nodes":1,"clients":200,"documents":20,"seconds":20,"ratePerClient":2,"activeFraction":1,"generatorProcesses":1,"connect":{"failed":0,"wallMs":1414,"perClientMs":{"samples":200,"p50":311.1,"p95":433.8,"p99":437.6,"max":440.6}},"edits":7315,"editsPerSecond":357,"propagationMs":{"samples":48600,"p50":74.2,"p95":318,"p99":519.2,"max":839.8},"ackMs":{"samples":7315,"p50":92,"p95":418,"p99":776,"max":1108},"steady":{"saved":true,"converged":true,"settleMs":31,"unsettled":{}},"server":[{"url":"http://127.0.0.1:18091","windowSeconds":20.6,"messagesInPerSec":182,"messagesOutPerSec":1781,"cpuPercent":27,"peakRssMiB":122,"worstEventLoopLagP99Ms":159.4,"connections":100,"backpressureDisconnects":0,"rateLimited":0,"errors":0,"sweepRepairs":0,"antiEntropyRepairs":0},{"url":"http://127.0.0.1:18092","windowSeconds":20.6,"messagesInPerSec":183,"messagesOutPerSec":1781,"cpuPercent":27.6,"peakRssMiB":118,"worstEventLoopLagP99Ms":350.7,"connections":100,"backpressureDisconnects":0,"rateLimited":0,"errors":0,"sweepRepairs":0,"antiEntropyRepairs":0}],"generator":{"cpuPercent":64.5,"worstEventLoopLagP99Ms":172.2},"storm":{"clients":200,"allRejoinedMs":763,"allSavedAndConvergedMs":900,"offlineEditsPresent":true,"nodes":[{"url":"http://127.0.0.1:18091","windowSeconds":0.9,"messagesInPerSec":445,"messagesOutPerSec":1197,"cpuPercent":27.5,"peakRssMiB":122,"worstEventLoopLagP99Ms":33.7,"connections":101,"backpressureDisconnects":0,"rateLimited":0,"errors":0,"sweepRepairs":0,"antiEntropyRepairs":0},{"url":"http://127.0.0.1:18092","windowSeconds":0.9,"messagesInPerSec":438,"messagesOutPerSec":1103,"cpuPercent":30.2,"peakRssMiB":118,"worstEventLoopLagP99Ms":39.3,"connections":99,"backpressureDisconnects":0,"rateLimited":0,"errors":0,"sweepRepairs":0,"antiEntropyRepairs":0}]},"databaseMatches":true}
+
+=== rolling restart of both nodes under load (100 clients, 30 s)
+connected 100/100 clients (1 generator processes) to 1 node(s), 10 documents in 751 ms; editing 30s at 2/s each
+node 1: docker stop took 879 ms, exit code 0
+node 2: docker stop took 559 ms, exit code 0
+{"at":"2026-10-05T14:51:05.788Z","nodes":1,"clients":100,"documents":10,"seconds":30,"ratePerClient":2,"activeFraction":1,"generatorProcesses":1,"connect":{"failed":0,"wallMs":751,"perClientMs":{"samples":100,"p50":184.4,"p95":263.2,"p99":267.3,"max":267.3}},"edits":5769,"editsPerSecond":189,"propagationMs":{"samples":37497,"p50":17.8,"p95":149.5,"p99":848.3,"max":1335.8},"ackMs":{"samples":5686,"p50":27,"p95":139,"p99":202,"max":253},"steady":{"saved":true,"converged":true,"settleMs":32,"unsettled":{}},"server":[],"generator":{"cpuPercent":56.5,"worstEventLoopLagP99Ms":85.5},"databaseMatches":true}
+load test during rolling restart: exit 0
+
+=== data survives a restart of both nodes
+node 1: docker stop took 315 ms, exit code 0
+node 2: docker stop took 150 ms, exit code 0
+PASS  GET /health/ready after restart
+PASS  session still valid after restart
+PASS  document content survived the restart  (smoke 2026-10-05T14:50:07.699Z 7e43f208af34)
+SMOKE TEST PASSED
+
+=== graceful shutdown log (node 1)
+{"time":"2026-10-05T14:51:09.176Z","level":"info","msg":"shutting down","node":"app1","signal":"SIGTERM"}
+{"time":"2026-10-05T14:51:09.178Z","level":"info","msg":"shutdown step done","node":"app1","step":"http","ms":1}
+{"time":"2026-10-05T14:51:09.178Z","level":"info","msg":"shutdown step done","node":"app1","step":"documents flushed","ms":1}
+{"time":"2026-10-05T14:51:09.179Z","level":"info","msg":"shutdown step done","node":"app1","step":"connections closed","ms":2}
+
+=== backup and restore
+backup written to /tmp/tmp.St4gERCNY2/backup.dump (166170 bytes)
+restored 31 documents, 79045 characters; all decode
+documents: source 31, restored 31
+
+=== nginx errors
+"no live upstreams" errors: 0
+
+DEPLOYMENT SMOKE TEST PASSED
+
+##### Second run: clean git clone of commit 47eaa41 (+ registration limit raised in this script), image tandem:0.2.0 built from it
+##### (a first attempt from the clean clone failed at 'register' with HTTP 429: the Redis-shared limit of 20 registrations/hour/address was used up by earlier runs from 127.0.0.1 — the limiter working as designed; the script now sets REGISTRATIONS_PER_HOUR=1000 for its containers)
+
+=== image tandem:0.2.0
+size 459779498 bytes, user node
+
+=== start two nodes and nginx
+uid=1000(node) gid=1000(node) groups=1000(node)
+
+=== smoke checks through nginx
+PASS  GET /health/live  (200)
+PASS  GET /health/ready (database reachable)  ({"status":"ok","checks":{"accepting":true,"database":true,"bus":true}})
+PASS  GET / serves the app  (200)
+PASS  Content-Security-Policy header
+PASS  X-Frame-Options DENY
+PASS  service worker served, not cached long-term
+PASS  /metrics not publicly readable  (404)
+PASS  request id returned  (7ded4cb38726b1a733e3876aad131cd2)
+PASS  register  (201)
+PASS  session cookie HttpOnly + SameSite
+PASS  GET /api/me with the session
+PASS  cross-origin POST refused  (403)
+PASS  create workspace and document
+PASS  another user cannot read the document (IDOR)  (404)
+PASS  anonymous request refused  (401)
+PASS  WebSocket join + sync through the load balancer  (51 ms)
+PASS  edit acknowledged (committed)  (50 ms)
+PASS  stored content matches
+PASS  cross-origin WebSocket refused  (403)
+SMOKE TEST PASSED
+metrics on a node: without token 404, with token 200
+client address recorded behind the proxy: 127.0.0.1
+
+=== load through nginx: 200 clients, 20 s, reconnect storm
+connected 200/200 clients (1 generator processes) to 1 node(s), 20 documents in 1384 ms; editing 20s at 2/s each
+{"at":"2026-10-05T15:04:47.967Z","nodes":1,"clients":200,"documents":20,"seconds":20,"ratePerClient":2,"activeFraction":1,"generatorProcesses":1,"connect":{"failed":0,"wallMs":1384,"perClientMs":{"samples":200,"p50":256.4,"p95":503.2,"p99":510.5,"max":512.7}},"edits":7584,"editsPerSecond":370,"propagationMs":{"samples":50427,"p50":26.7,"p95":135.8,"p99":250,"max":378.3},"ackMs":{"samples":7584,"p50":39,"p95":209,"p99":450,"max":672},"steady":{"saved":true,"converged":true,"settleMs":39,"unsettled":{}},"server":[{"url":"http://127.0.0.1:18091","windowSeconds":20.6,"messagesInPerSec":189,"messagesOutPerSec":1845,"cpuPercent":23,"peakRssMiB":113,"worstEventLoopLagP99Ms":198.7,"connections":100,"backpressureDisconnects":0,"rateLimited":0,"errors":0,"sweepRepairs":0,"antiEntropyRepairs":0},{"url":"http://127.0.0.1:18092","windowSeconds":20.6,"messagesInPerSec":189,"messagesOutPerSec":1843,"cpuPercent":22.8,"peakRssMiB":120,"worstEventLoopLagP99Ms":346.6,"connections":100,"backpressureDisconnects":0,"rateLimited":0,"errors":0,"sweepRepairs":0,"antiEntropyRepairs":0}],"generator":{"cpuPercent":69.1,"worstEventLoopLagP99Ms":88.6},"storm":{"clients":200,"allRejoinedMs":1061,"allSavedAndConvergedMs":1159,"offlineEditsPresent":true,"nodes":[{"url":"http://127.0.0.1:18091","windowSeconds":1.2,"messagesInPerSec":343,"messagesOutPerSec":824,"cpuPercent":40.6,"peakRssMiB":117,"worstEventLoopLagP99Ms":42.9,"connections":100,"backpressureDisconnects":0,"rateLimited":0,"errors":0,"sweepRepairs":0,"antiEntropyRepairs":0},{"url":"http://127.0.0.1:18092","windowSeconds":1.2,"messagesInPerSec":343,"messagesOutPerSec":862,"cpuPercent":40.5,"peakRssMiB":122,"worstEventLoopLagP99Ms":59.7,"connections":100,"backpressureDisconnects":0,"rateLimited":0,"errors":0,"sweepRepairs":0,"antiEntropyRepairs":0}]},"databaseMatches":true}
+
+=== rolling restart of both nodes under load (100 clients, 30 s)
+connected 100/100 clients (1 generator processes) to 1 node(s), 10 documents in 700 ms; editing 30s at 2/s each
+node 1: docker stop took 559 ms, exit code 0
+node 2: docker stop took 298 ms, exit code 0
+{"at":"2026-10-05T15:05:21.031Z","nodes":1,"clients":100,"documents":10,"seconds":30,"ratePerClient":2,"activeFraction":1,"generatorProcesses":1,"connect":{"failed":0,"wallMs":700,"perClientMs":{"samples":100,"p50":169.7,"p95":221.1,"p99":227.2,"max":227.2}},"edits":5830,"editsPerSecond":191,"propagationMs":{"samples":37853,"p50":11.3,"p95":94.7,"p99":607.1,"max":1192},"ackMs":{"samples":5803,"p50":18,"p95":85,"p99":179,"max":271},"steady":{"saved":true,"converged":true,"settleMs":25,"unsettled":{}},"server":[],"generator":{"cpuPercent":56.9,"worstEventLoopLagP99Ms":52.5},"databaseMatches":true}
+load test during rolling restart: exit 0
+
+=== data survives a restart of both nodes
+node 1: docker stop took 263 ms, exit code 0
+node 2: docker stop took 106 ms, exit code 0
+PASS  GET /health/ready after restart
+PASS  session still valid after restart
+PASS  document content survived the restart  (smoke 2026-10-05T15:04:22.786Z de4c7a387f4b)
+SMOKE TEST PASSED
+
+=== graceful shutdown log (node 1)
+{"time":"2026-10-05T15:05:24.399Z","level":"info","msg":"shutting down","node":"app1","signal":"SIGTERM"}
+{"time":"2026-10-05T15:05:24.402Z","level":"info","msg":"shutdown step done","node":"app1","step":"http","ms":1}
+{"time":"2026-10-05T15:05:24.402Z","level":"info","msg":"shutdown step done","node":"app1","step":"documents flushed","ms":1}
+{"time":"2026-10-05T15:05:24.405Z","level":"info","msg":"shutdown step done","node":"app1","step":"connections closed","ms":4}
+
+=== backup and restore
+backup written to /tmp/tmp.CENf9ZzNqm/backup.dump (169801 bytes)
+restored 31 documents, 81020 characters; all decode
+documents: source 31, restored 31
+
+=== nginx errors
+"no live upstreams" errors: 0
+
+DEPLOYMENT SMOKE TEST PASSED
