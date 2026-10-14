@@ -1,0 +1,19 @@
+ 20:54:01 up 16 min,  0 user,  load average: 34.45, 26.10, 14.88
+$ tools/pg-crash-cluster.sh init   # private cluster on :5499
+$ TEST_DATABASE_ADMIN_URL=postgres://postgres@127.0.0.1:5499/postgres npx tsx tools/crash-ack.ts --cycles 12 --clients 6 --mode all
+[20:54:16.440] cycle 1 (server): sent 281, acked 0, unacked 281 (stored anyway: 1), acked missing from DB: 0
+[20:54:25.444] cycle 2 (pg): sent 324, acked 240, unacked 84 (stored anyway: 0), acked missing from DB: 0
+[20:54:32.435] cycle 3 (pg-recover): sent 629, acked 486, unacked 143 (stored anyway: 49), acked missing from DB: 0
+[20:54:38.216] cycle 4 (server): sent 408, acked 127, unacked 281 (stored anyway: 149), acked missing from DB: 0
+[20:54:47.279] cycle 5 (pg): sent 402, acked 211, unacked 191 (stored anyway: 0), acked missing from DB: 0
+[20:54:56.030] cycle 6 (pg-recover): sent 1032, acked 962, unacked 70 (stored anyway: 22), acked missing from DB: 0
+[20:55:01.582] cycle 7 (server): sent 540, acked 317, unacked 223 (stored anyway: 110), acked missing from DB: 0
+[20:55:09.632] cycle 8 (pg): sent 462, acked 1, unacked 461 (stored anyway: 0), acked missing from DB: 0
+[20:55:17.534] cycle 9 (pg-recover): sent 1026, acked 216, unacked 810 (stored anyway: 0), acked missing from DB: 0
+[20:55:20.470] cycle 10 (server): sent 197, acked 174, unacked 23 (stored anyway: 6), acked missing from DB: 0
+[20:55:29.940] cycle 11 (pg): sent 1044, acked 762, unacked 282 (stored anyway: 0), acked missing from DB: 0
+[20:55:37.670] cycle 12 (pg-recover): sent 804, acked 210, unacked 594 (stored anyway: 0), acked missing from DB: 0
+{"pass":true,"mode":"all","cycles":12,"clients":6,"sent":7149,"acked":3706,"unackedButStored":337,"failures":[],"perCycle":[{"cycle":1,"mode":"server","faultAfterMs":1241,"sent":281,"acked":0,"unacked":281,"unackedButStored":1,"missingAcked":0},{"cycle":2,"mode":"pg","faultAfterMs":900,"sent":324,"acked":240,"unacked":84,"unackedButStored":0,"missingAcked":0},{"cycle":3,"mode":"pg-recover","faultAfterMs":555,"sent":629,"acked":486,"unacked":143,"unackedButStored":49,"missingAcked":0},{"cycle":4,"mode":"server","faultAfterMs":1426,"sent":408,"acked":127,"unacked":281,"unackedButStored":149,"missingAcked":0},{"cycle":5,"mode":"pg","faultAfterMs":1170,"sent":402,"acked":211,"unacked":191,"unackedButStored":0,"missingAcked":0},{"cycle":6,"mode":"pg-recover","faultAfterMs":1133,"sent":1032,"acked":962,"unacked":70,"unackedButStored":22,"missingAcked":0},{"cycle":7,"mode":"server","faultAfterMs":1477,"sent":540,"acked":317,"unacked":223,"unackedButStored":110,"missingAcked":0},{"cycle":8,"mode":"pg","faultAfterMs":810,"sent":462,"acked":1,"unacked":461,"unackedButStored":0,"missingAcked":0},{"cycle":9,"mode":"pg-recover","faultAfterMs":744,"sent":1026,"acked":216,"unacked":810,"unackedButStored":0,"missingAcked":0},{"cycle":10,"mode":"server","faultAfterMs":566,"sent":197,"acked":174,"unacked":23,"unackedButStored":6,"missingAcked":0},{"cycle":11,"mode":"pg","faultAfterMs":1467,"sent":1044,"acked":762,"unacked":282,"unackedButStored":0,"missingAcked":0},{"cycle":12,"mode":"pg-recover","faultAfterMs":424,"sent":804,"acked":210,"unacked":594,"unackedButStored":0,"missingAcked":0}]}
+exit 0
+crash recoveries in pg log: 13
+ 20:55:41 up 18 min,  0 user,  load average: 43.74, 32.09, 18.25

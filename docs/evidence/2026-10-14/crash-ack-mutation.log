@@ -1,0 +1,41 @@
+# MUTATION: packages/server/dist/rooms.js acknowledges client updates on receipt, before the PostgreSQL write
+ 20:59:25 up 22 min,  0 user,  load average: 30.51, 32.96, 21.72
+[20:59:32.575] cycle 1 (server): sent 432, acked 414, unacked 18 (stored anyway: 0), acked missing from DB: 6
+[20:59:41.951] cycle 2 (pg): sent 474, acked 462, unacked 12 (stored anyway: 0), acked missing from DB: 294
+[20:59:48.566] cycle 3 (pg-recover): sent 978, acked 969, unacked 9 (stored anyway: 0), acked missing from DB: 1095
+[20:59:51.354] cycle 4 (server): sent 468, acked 438, unacked 30 (stored anyway: 0), acked missing from DB: 1100
+[21:00:11.048] cycle 5 (pg): sent 1098, acked 1092, unacked 6 (stored anyway: 0), acked missing from DB: 1376
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: Connection terminated unexpectedly
+    at Connection.<anonymous> (/home/user/tandem-collaborative-editor/node_modules/pg/lib/client.js:204:73)
+    at Object.onceWrapper (node:events:633:28)
+    at Connection.emit (node:events:519:28)
+    at Socket.<anonymous> (/home/user/tandem-collaborative-editor/node_modules/pg/lib/connection.js:64:12)
+    at Socket.emit (node:events:519:28)
+    at TCP.<anonymous> (node:net:346:12)
+Emitted 'error' event on Client instance at:
+    at Client._handleErrorEvent (/home/user/tandem-collaborative-editor/node_modules/pg/lib/client.js:422:10)
+    at Connection.<anonymous> (/home/user/tandem-collaborative-editor/node_modules/pg/lib/client.js:222:16)
+    at Object.onceWrapper (node:events:633:28)
+    at Connection.emit (node:events:519:28)
+    at Socket.<anonymous> (/home/user/tandem-collaborative-editor/node_modules/pg/lib/connection.js:64:12)
+    at Socket.emit (node:events:519:28)
+    at TCP.<anonymous> (node:net:346:12)
+
+Node.js v22.22.0
+Error: kill ESRCH
+    at process.kill (node:internal/process/per_thread:281:13)
+    at <anonymous> (/home/user/tandem-collaborative-editor/tools/crash-ack.ts:101:13)
+    at new Promise (<anonymous>)
+    at kill9 (/home/user/tandem-collaborative-editor/tools/crash-ack.ts:99:10)
+    at main (/home/user/tandem-collaborative-editor/tools/crash-ack.ts:199:13)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processTimers (node:internal/timers:520:9) {
+  errno: -3,
+  code: 'ESRCH',
+  syscall: 'kill'
+}
+exit 2
