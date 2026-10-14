@@ -30,6 +30,11 @@ export async function createApp(cfg: Config, opts: { log?: Logger } = {}): Promi
   const log = countingLogger(baseLog, metrics);
   const db = createDb(cfg.databaseUrl);
   db.on("error", (err) => log.error("database pool error", { err: err.message }));
+  // The pool listens for errors only on idle clients. A connection that
+  // fails while checked out and between statements (a transaction during a
+  // PostgreSQL crash) would emit an unhandled 'error' and kill the process.
+  // The statement in progress still fails and is handled by its caller.
+  db.on("connect", (client) => client.on("error", (err) => log.warn("database connection lost while in use", { err: err.message })));
   instrumentDb(db, metrics);
   const applied = await migrate(db);
   if (applied.length) log.info("migrations applied", { applied });

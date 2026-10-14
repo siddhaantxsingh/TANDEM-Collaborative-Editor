@@ -1,0 +1,3 @@
+# db-resilience.test.ts AFTER the fix
+ ✓ packages/server/test/db-resilience.test.ts > database connection loss > a checked-out pool client whose backend is killed does not crash the server 615ms
+      Tests  1 passed (1)

@@ -1,0 +1,9 @@
+# db-resilience.test.ts against ORIGINAL app.ts (failing-first)
+     × a checked-out pool client whose backend is killed does not crash the server 629ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  packages/server/test/db-resilience.test.ts > database connection loss > a checked-out pool client whose backend is killed does not crash the server
+AssertionError: expected [ …(2) ] to deeply equal []
++     "message": "terminating connection due to administrator command",
++   Error {
++     "message": "Connection terminated unexpectedly",
+      Tests  1 failed (1)
