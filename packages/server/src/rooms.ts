@@ -127,8 +127,7 @@ export class Room {
       return ErrorCode.TooLarge;
     }
     this.captured = [];
-    const store = this.doc.store as unknown as { pendingStructs: unknown; pendingDs: unknown };
-    const pendingBefore = [store.pendingStructs, store.pendingDs];
+    const store = this.doc.store as unknown as { pendingStructs: { update: Uint8Array } | null; pendingDs: Uint8Array | null };
     try {
       applyUpdateHealing(this.doc, update, peer);
     } catch (err) {
@@ -143,7 +142,13 @@ export class Room {
     // held by Yjs as *pending* and produce no "update" event. They are still
     // information the client was promised is stored, so the raw update (a
     // superset; Yjs updates are idempotent) is persisted instead.
-    const stashed = store.pendingStructs !== pendingBefore[0] || store.pendingDs !== pendingBefore[1];
+    // Whenever anything is pending after the apply, the raw update is
+    // stored: Yjs merges a new pending update into the existing pending
+    // object in place (same object, new .update), so comparing objects
+    // before and after missed a second pending update and acknowledged it
+    // unstored (P10, docs/AUDIT_2026-10-14.md). Storing a raw update that was
+    // in fact fully integrated only costs bytes.
+    const stashed = store.pendingStructs !== null || store.pendingDs !== null;
     if (stashed) this.mgr.metrics.updatesPending.inc();
     const effective = stashed ? update : integrated;
     if (effective) {
