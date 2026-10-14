@@ -158,11 +158,17 @@ describe("rate limits behind a proxy and across nodes", () => {
 
   it("login attempts are counted across nodes (Redis)", async () => {
     const tag = Math.random().toString(36).slice(2);
-    const a = await startServer(db.url, { redisUrl: REDIS_URL, nodeId: `rl-a-${tag}`, loginAttemptsPerMinute: 4 });
-    const b = await startServer(db.url, { redisUrl: REDIS_URL, nodeId: `rl-b-${tag}`, loginAttemptsPerMinute: 4 });
+    // Behind a proxy with a client address unique to this run: the per-IP
+    // counter lives in the shared Redis in fixed one-minute windows, so other
+    // tests (or a previous run) logging in from 127.0.0.1 within the same
+    // minute must not use up this test's budget.
+    const a = await startServer(db.url, { redisUrl: REDIS_URL, nodeId: `rl-a-${tag}`, loginAttemptsPerMinute: 4, trustProxy: true });
+    const b = await startServer(db.url, { redisUrl: REDIS_URL, nodeId: `rl-b-${tag}`, loginAttemptsPerMinute: 4, trustProxy: true });
+    const ip = `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${1 + Math.floor(Math.random() * 250)}`;
     const email = `victim-${tag}@example.com`; // per-email limit: 2 per minute
     const st: number[] = [];
-    for (const srv of [a, b, a, b]) st.push((await new Http(srv.base).post("/api/auth/login", { email, password: "guess guess" })).status);
+    for (const srv of [a, b, a, b])
+      st.push((await new Http(srv.base).req("POST", "/api/auth/login", { email, password: "guess guess" }, { "X-Forwarded-For": ip })).status);
     expect(st).toEqual([401, 401, 429, 429]);
     await a.app.close();
     await b.app.close();
@@ -172,6 +178,9 @@ describe("rate limits behind a proxy and across nodes", () => {
 describe("operational endpoints", () => {
   it("metrics need the bearer token when one is configured", async () => {
     const t = await startServer(db.url, { metricsToken: "s3cret-token" });
+    // A pool query must have completed before tandem_db_query_seconds has a
+    // series (the startup session cleanup may still be in flight).
+    expect((await fetch(t.base + "/health/ready")).status).toBe(200);
     expect((await fetch(t.base + "/metrics")).status).toBe(404);
     expect((await fetch(t.base + "/metrics", { headers: { Authorization: "Bearer wrong-token!" } })).status).toBe(404);
     const ok = await fetch(t.base + "/metrics", { headers: { Authorization: "Bearer s3cret-token" } });

@@ -1,0 +1,9 @@
+
+> tandem@0.2.0 typecheck
+> tsc -b packages/protocol packages/server && npm run typecheck -w @tandem/client
+
+
+> @tandem/client@0.2.0 typecheck
+> tsc --noEmit -p .
+
+exit 0
