@@ -63,8 +63,27 @@ export async function sessionUser(db: Db, token: string | undefined): Promise<Se
   return r.rows[0] as SessionUser | undefined;
 }
 
+// The session behind a WebSocket upgrade: the user, the token hash (hex)
+// that identifies the session in revocation events, and when it expires.
+export async function sessionForSocket(db: Db, token: string | undefined): Promise<{ user: SessionUser; tokenHash: string; expiresAt: Date } | undefined> {
+  if (!token || token.length > 100) return undefined;
+  const h = tokenHash(token);
+  const r = await db.query(
+    "SELECT u.id, u.email, u.name, s.expires_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1 AND s.expires_at > now()",
+    [h],
+  );
+  const row = r.rows[0];
+  if (!row) return undefined;
+  return { user: { id: row.id, email: row.email, name: row.name }, tokenHash: h.toString("hex"), expiresAt: new Date(row.expires_at) };
+}
+
 export async function deleteSession(db: Db, token: string): Promise<void> {
   await db.query("DELETE FROM sessions WHERE token_hash = $1", [tokenHash(token)]);
+}
+
+export async function deleteUserSessions(db: Db, userId: string): Promise<number> {
+  const r = await db.query("DELETE FROM sessions WHERE user_id = $1", [userId]);
+  return r.rowCount ?? 0;
 }
 
 export const SESSION_COOKIE = "tandem_session";

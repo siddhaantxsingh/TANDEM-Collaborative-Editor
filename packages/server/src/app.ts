@@ -54,7 +54,15 @@ export async function createApp(cfg: Config, opts: { log?: Logger } = {}): Promi
     loginEmail: limiter("login-email", Math.max(1, Math.floor(perMin / 2)), 60_000),
     registerIp: limiter("register-ip", Math.max(1, cfg.registrationsPerHour), 3_600_000),
   };
-  const api = new HttpApi(db, rooms, bus, cfg, log, metrics, limiters, (userId) => ws.closeUser(userId));
+  const api = new HttpApi(db, rooms, bus, cfg, log, metrics, limiters, {
+    session: (h) => ws.closeSession(h, "logout"),
+    user: (userId) => ws.closeUser(userId, "logout_all"),
+  });
+  // Revocations made through another node (closing twice is harmless).
+  bus.onControl((e) => {
+    if (e.type === "session-revoked") ws.closeSession(e.tokenHash, "logout");
+    else if (e.type === "user-sessions-revoked") ws.closeUser(e.userId, "logout_all");
+  });
   // Expired sessions are useless and only grow the table.
   const cleanup = async () => {
     try {
