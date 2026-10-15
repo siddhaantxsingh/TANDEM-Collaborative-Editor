@@ -123,7 +123,11 @@ describe("fragmentation", () => {
         out = r.add(d as Extract<Message, { type: MsgType.Fragment }>);
         if (i < frames.length - 1) expect(out).toBeUndefined();
       });
-      expect(out).toEqual(m);
+      // Compare the payload with Buffer.equals: a deep toEqual over a
+      // multi-megabyte Uint8Array takes over a minute on a busy machine.
+      const got = out as Extract<Message, { type: MsgType.Update }>;
+      expect({ ...got, update: undefined }).toEqual({ ...m, update: undefined });
+      expect(Buffer.from(got.update).equals(Buffer.from(update))).toBe(true);
       expect(r.bufferedBytes).toBe(0);
     }
   });

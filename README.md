@@ -258,7 +258,20 @@ This is a security feature, not a missing TODO.
   Backup / restore               31/31 documents restored
 
 The final hardening pass recorded **88/88 Vitest tests** and **3/3
-browser E2E scenarios** passing.
+browser E2E scenarios** passing. The 2026-10-14 audit
+([`docs/AUDIT_2026-10-14.md`](docs/AUDIT_2026-10-14.md)) added session
+revalidation, an offline property test with byte-level replica checks and
+a kill -9 crash test; it found and fixed an acknowledged-but-unstored
+update (P10) and a node crash on PostgreSQL connection loss. Now:
+**100 Vitest tests, 3/3 E2E** (`docs/evidence/2026-10-14/final-tests.log`).
+
+| 2026-10-14 check | Result |
+| --- | --- |
+| Offline property, 200 random schedules, 2 nodes | all replicas and PostgreSQL identical (content, state vector, bytes) |
+| Crash: server and PostgreSQL kill -9 during writes, 12 cycles | 3,706 acks, 0 missing |
+| Chaos with real node processes, 2 runs | 7,160 / 7,088 inserts, 0 lost |
+| Logout / revoked / expired session | live sockets closed on every node |
+| Load, 50 editors, shared 4-vCPU machine (load avg 23-30) | propagation p50 25-44 ms (1 node), 74-166 ms (2 nodes); p99 0.3-1.4 s |
 
 ------------------------------------------------------------------------
 
@@ -377,8 +390,9 @@ verification.
 npm ci
 npm run build
 npm run typecheck
-npx vitest run
-npx playwright test
+npx vitest run          # needs PostgreSQL + Redis (TEST_DATABASE_ADMIN_URL, TEST_REDIS_URL)
+npx playwright test     # CHROMIUM_PATH=... if the installed Chromium build differs
+npx tsx tools/crash-ack.ts --mode server   # kill -9 during writes
 ```
 
 Docker:
@@ -422,6 +436,10 @@ tools/pending-check.ts
                                       [`docs/FINAL_AUDIT.md`](docs/FINAL_AUDIT.md)
 
   ADRs                                [`docs/adr/`](docs/adr/)
+
+  2026-10-14 audit                    [`docs/AUDIT_2026-10-14.md`](docs/AUDIT_2026-10-14.md) ·
+                                      [`docs/REQUIREMENTS_MATRIX.md`](docs/REQUIREMENTS_MATRIX.md) ·
+                                      [`docs/OWNER_ACTIONS.md`](docs/OWNER_ACTIONS.md)
   ------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -438,6 +456,9 @@ Not claimed:
 -   semantic conflict detection
 -   code execution
 -   formal verification
+-   operational transformation (only the Yjs CRDT is used)
+-   a verified Docker build in the 2026-10-14 audit (disk was full; see
+    [`docs/OWNER_ACTIONS.md`](docs/OWNER_ACTIONS.md))
 
 The project's correctness claims are **test-backed guarantees**, not
 formal proofs.

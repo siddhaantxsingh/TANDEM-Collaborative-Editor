@@ -29,6 +29,10 @@ print the seed in the test name.
 | `server/test/multinode.test.ts` | 5 | cross-node edits/presence/role changes, failover keeps edits, durability sweep, sweep not fooled by an edit that arrives during its database read |
 | `server/test/limits.test.ts` | 7 | malformed frames, malformed Yjs updates, flooding, document size limit, backpressure disconnect, health/metrics, readiness without database |
 | `server/test/property.test.ts` | 2 | fast-check scenarios of 2–4 clients on two nodes with random edits, pauses and disconnects: replicas and database identical, every insert exactly once |
+| `server/test/session.test.ts` (2026-10-14) | 9 | logout closes that session's sockets on every node and only that session; log out everywhere; expiry; admin revocation; membership/role/document changes without bus events reach live sockets |
+| `server/test/offline-property.test.ts` (2026-10-14) | 1 | fast-check: 2-5 clients over 2 nodes, offline periods, duplicate/reorder/delay; identical content, state vector, delete set and canonical bytes everywhere incl. PostgreSQL (30 runs by default, `OFFLINE_PROP_RUNS`) |
+| `server/test/db-resilience.test.ts` (2026-10-14) | 1 | killed backend of a checked-out pool client does not crash the node |
+| `tools/crash-ack.ts` (2026-10-14) | - | kill -9 of the server / PostgreSQL during writes; every acknowledged insert stored (`tools/pg-crash-cluster.sh` for a private cluster) |
 | `server/test/compaction.test.ts` | 1 | an update committing after compaction merged a higher sequence number is not lost |
 | `e2e/editor.spec.ts` (Playwright) | 1 | three browsers: live typing, presence, offline then merged, viewer read-only, Run disabled |
 | `e2e/offline.spec.ts` (Playwright) | 2 | reload while offline keeps edits and syncs them later; browser restart while offline (persistent profile) boots from the service worker and IndexedDB, then syncs |

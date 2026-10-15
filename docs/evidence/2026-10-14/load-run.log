@@ -1,0 +1,9 @@
+ 08:22:50 up 10 min,  0 user,  load average: 23.14, 13.34, 5.93
+== single: 50 clients on http://127.0.0.1:18760
+== single: 50 clients on http://127.0.0.1:18760
+== single: 50 clients on http://127.0.0.1:18760
+== multi: 50 clients on http://127.0.0.1:18760,http://127.0.0.1:18761
+== multi: 50 clients on http://127.0.0.1:18760,http://127.0.0.1:18761
+== multi: 50 clients on http://127.0.0.1:18760,http://127.0.0.1:18761
+== single-partial: 1000 clients on http://127.0.0.1:18760
+ 08:27:06 up 14 min,  0 user,  load average: 30.25, 22.51, 11.49

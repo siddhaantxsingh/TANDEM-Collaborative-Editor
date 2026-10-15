@@ -36,6 +36,8 @@ jobs:
           for i in $(seq 50); do curl -fs http://127.0.0.1:8081/health/ready && break; sleep 0.2; done
           npx tsx tools/smoke.ts --url http://127.0.0.1:8081 --phase write --state smoke.json
           npx tsx tools/loadtest.ts --url http://127.0.0.1:8081 --clients 30 --docs 3 --seconds 15 --rate 4 --storm 1
+      - name: Crash test (server SIGKILL during writes; every acknowledged insert must be in PostgreSQL)
+        run: npx tsx tools/crash-ack.ts --cycles 4 --clients 4 --mode server
       - name: Chaos test (node kills; Redis/PostgreSQL restarts are not possible on service containers)
         run: npx tsx tools/chaos.ts
 
