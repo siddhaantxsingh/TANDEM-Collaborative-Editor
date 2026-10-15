@@ -41,8 +41,9 @@ Error codes: 1 BadMessage (connection closed), 2 Unauthorized, 3 Forbidden,
 5 RateLimited, 6 TooLarge, 7 Internal, 8 ChannelInUse, 9 Overloaded,
 10 UnsupportedVersion.
 
-WebSocket close codes: 4000 protocol error, 4001 unauthorized (the client
-stops reconnecting), 4008 rate limited, 4009 send buffer full
+WebSocket close codes: 4000 protocol error, 4001 unauthorized: the session
+ended (logout of this session, log out everywhere, expiry, or revocation
+found by the periodic revalidation); the client stops reconnecting, 4008 rate limited, 4009 send buffer full
 (backpressure), 4010 superseded by a newer connection of the same session,
 4011 no Hello within the handshake timeout, 1001 server shutdown, 1013 try
 again later (inbound queue full, global budget exhausted).

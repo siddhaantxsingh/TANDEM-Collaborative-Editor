@@ -1,0 +1,35 @@
+# BEFORE the P10 fix (first version of the test; the 'qufls0|'/'jf0|' failures were a test bug: an insert can land inside an earlier one, fixed by comparing character multisets):
+## batch 1 (50 runs)
+{ seed: -1109260178, path: "33", endOnFailure: true }
+Caused by: AssertionError: qufls0|: expected false to be true // Object.is equality
+      Tests  1 failed (1)
+## batch 2 (50 runs)
+{ seed: -1271307109, path: "1", endOnFailure: true }
+Caused by: AssertionError: database: expected { …(4) } to deeply equal { …(4) }
+      Tests  1 failed (1)
+## batch 3 (50 runs)
+{ seed: 362335694, path: "8", endOnFailure: true }
+Caused by: AssertionError: jf0|: expected false to be true // Object.is equality
+      Tests  1 failed (1)
+
+# Diagnosed failure before the P10 fix (DB lacks an acknowledged update of client 3; all replicas have it):
+VIEW MISMATCH database (docId Qrm3AEBeBcC1D52M): {"text":{"database":"zbyhl2gh4|o1|bpd0cal3||vkeg6|","reference":"zbyhl2gh4|o1|bpd0cal3|znsd5||vkeg6|"},"stateVector":{"database":[[200778196,18],[1437663124,11],[3386124025,7]],"reference":[[200778196,18],[1437663124,17],[3386124025,7]]}}
+  rows applied one by one: sv equal=false, snapshot=0, log rows=5
+  replicas: 200778196=client 0 on node1, 3386124025=client 1 on node2, 1938298660=client 2 on node1, 1437663124=client 3 on node2; schedule: [{"kind":"delete","client":0,"pos":3,"len":1},{"kind":"offline","client":1},{"kind":"mapSet","client":3,"key":2,"value":996},{"kind":"insert","client":3,"pos":1684151556,"text":"bpd"},{"kind":"mapSet","client":0,"key":1,"value":1},{"kind":"online","client":3}
+  node1 logs: 
+
+# AFTER the P10 fix: 4 batches x 50 runs
+ 20:59:14 up 21 min,  0 user,  load average: 29.49, 32.86, 21.56
+## batch 1
+offline property: 50 runs; raw encodeStateAsUpdate bytes identical in 50, different (canonical bytes identical) in 0
+      Tests  1 passed (1)
+## batch 2
+offline property: 50 runs; raw encodeStateAsUpdate bytes identical in 50, different (canonical bytes identical) in 0
+      Tests  1 passed (1)
+## batch 3
+offline property: 50 runs; raw encodeStateAsUpdate bytes identical in 50, different (canonical bytes identical) in 0
+      Tests  1 passed (1)
+## batch 4
+offline property: 50 runs; raw encodeStateAsUpdate bytes identical in 50, different (canonical bytes identical) in 0
+      Tests  1 passed (1)
+ 21:07:37 up 30 min,  0 user,  load average: 15.06, 28.02, 25.14
