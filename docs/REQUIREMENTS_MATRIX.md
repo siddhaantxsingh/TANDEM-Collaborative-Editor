@@ -21,4 +21,4 @@ unless stated. "Baseline" is the state of commit 1a4d7df.
 | 13 | Operational transformation as an alternate merge strategy (resume) | NOT IMPLEMENTED | NOT IMPLEMENTED | `docs/CORRECTNESS.md`, `docs/adr/001-crdt-yjs.md` | the code uses only Yjs; the resume line should be removed |
 | 14 | Docker image builds and runs; compose stack | IMPLEMENTED BUT UNVERIFIED (here) | BLOCKED | - | shared disk 98-100 % full; owner step in `docs/OWNER_ACTIONS.md` |
 | 15 | Real deployment | NOT IMPLEMENTED | BLOCKED (owner-only) | `docs/OWNER_ACTIONS.md` | |
-| 16 | CI on GitHub | unknown | IMPLEMENTED BUT UNVERIFIED | `.github/workflows/ci.yml` | see final report for run status |
+| 16 | CI on GitHub | unknown | VERIFIED | `.github/workflows/ci.yml` | run 38707130851 on this branch green (test and docker jobs) |

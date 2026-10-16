@@ -1,472 +1,181 @@
-<div align="center">
-<h1>Tandem</h1>
+# Tandem
 
-<h3>A fault-tolerant, offline-first real-time collaborative code editor.</h3>
+A real-time collaborative code editor that keeps working offline and on more than one server node. Built on the Yjs CRDT, a versioned binary WebSocket protocol, PostgreSQL and Redis.
 
-<p>
-<img src="https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black">
-<img src="https://img.shields.io/badge/Monaco-Editor-007ACC?style=for-the-badge">
-<img src="https://img.shields.io/badge/Yjs-CRDT-7B2CBF?style=for-the-badge">
-<img src="https://img.shields.io/badge/WebSocket-Protocol-111111?style=for-the-badge">
-<img src="https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white">
-<img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white">
-</p>
-**Concurrent editing · offline-first · durable acknowledgements ·
-multi-node synchronization · failure recovery**
-</div>
+[![ci](https://github.com/siddhaantxsingh/TANDEM-Collaborative-Editor/actions/workflows/ci.yml/badge.svg?branch=ccr-a6e6c567-y4w7k8)](https://github.com/siddhaantxsingh/TANDEM-Collaborative-Editor/actions/workflows/ci.yml?query=branch%3Accr-a6e6c567-y4w7k8)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
+![Node](https://img.shields.io/badge/Node-%E2%89%A520-339933?logo=node.js&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-------------------------------------------------------------------------
+![Tandem with two users editing the same file](docs/screenshot.png)
 
-## ✦ The problem
+Monaco editor, file tree and tabs, remote cursors and presence, workspaces with OWNER / EDITOR / VIEWER roles, offline editing through IndexedDB, and a server that only acknowledges an edit after PostgreSQL has committed it. There is deliberately no "run code" feature, because there is no safe sandbox for it ([ADR-007](docs/adr/007-no-code-execution.md)).
 
-Real-time collaborative editing is deceptively hard.
+## Highlights
 
-A demo can synchronize two textareas with a WebSocket in an afternoon.
+- **"ACK means PostgreSQL commit", tested with kill -9.** Across 12 crash cycles that SIGKILL the server or PostgreSQL during writes, 3,706 acknowledged edits were sent and 0 were missing from the database. A mutant that acks on receipt loses 1,376 ([`crash-ack.log`](docs/evidence/2026-10-14/crash-ack.log), [`crash-ack-mutation.log`](docs/evidence/2026-10-14/crash-ack-mutation.log)).
+- **Offline edits converge byte for byte.** A fast-check property test runs 2–5 clients over 2 nodes with offline periods and duplicated, reordered and delayed frames. In 200/200 schedules, every client, both server replicas and PostgreSQL had the same content, state vector and canonical bytes ([`offline-property.log`](docs/evidence/2026-10-14/offline-property.log)).
+- **Multi-node chaos with real processes.** 2 nodes behind Redis, with SIGKILL of each node, a Redis restart and a PostgreSQL SIGKILL: 7,160 and 7,088 inserts in two runs, 0 missing or duplicated, database matching the replicas ([`chaos-multinode.log`](docs/evidence/2026-10-14/chaos-multinode.log)).
+- **Revoked sessions lose their sockets on every node.** Logout, expiry, admin revocation and permission changes close or downgrade live WebSockets, even if the Redis event is lost (revalidation every 30 s). 7 of 9 of these tests failed before the fix.
+- **Measured load profile.** On a 2-vCPU VM shared with the databases and the load generator, 100 fully active clients on one node (≈ 191 edits/s) saw propagation p99 95.8 ms and durable-ack p99 118 ms at 19.2 % server CPU ([PERFORMANCE.md](docs/PERFORMANCE.md)).
+- **Real bugs found by the tests.** An update with missing dependencies could be acked but never stored (P10), and a lost PostgreSQL connection could crash the node (R1). Both have failing-first logs and regression tests ([audit](docs/AUDIT_2026-10-14.md)).
 
-A useful collaboration system must answer much harder questions:
+## Architecture
 
--   What happens when two users edit the same position?
--   What if messages arrive twice?
--   What if they arrive out of order?
--   What if a client goes offline for ten minutes?
--   What if the server acknowledges an edit and then crashes?
--   What if PostgreSQL is unavailable?
--   What if Redis restarts?
--   What if a node dies during a rolling deployment?
--   What if 1,000 clients reconnect simultaneously?
-
-**Tandem is built around those questions.**
-
-------------------------------------------------------------------------
-
-## 🖥️ Product
-
-![Tandem collaborative editor](docs/screenshot.png)
-
-Tandem provides:
-
--   Monaco editor
--   file tree and tabs
--   multi-user editing
--   remote cursors
--   presence avatars
--   workspaces
--   OWNER / EDITOR / VIEWER roles
--   offline editing
--   reconnect and state-vector synchronization
--   durable persistence
--   multi-node server architecture
-
-There is intentionally **no server-side code execution**. The project
-does not pretend an unsafe `child_process` feature is a sandbox.
-
-------------------------------------------------------------------------
-
-## 🧭 Architecture
-
-``` mermaid
+```mermaid
 flowchart LR
-    A["Browser A<br/>React + Monaco + Yjs"] <-->|"WebSocket v2"| N1["Node A"]
-    B["Browser B<br/>React + Monaco + Yjs"] <-->|"WebSocket v2"| N2["Node B"]
+  subgraph Browser["Browser (packages/client)"]
+    UI["React + Monaco"] --> B["y-monaco binding"]
+    B --> YD["Y.Doc replica"]
+    YD <--> IDB[("IndexedDB<br/>offline replica")]
+    YD <--> CE["TandemConnection<br/>sync engine<br/>(packages/protocol)"]
+  end
 
-    N1 <--> R["Redis Pub/Sub"]
-    N2 <--> R
+  CE <-->|"binary protocol v2<br/>WebSocket /ws"| LB["nginx / any LB<br/>(no sticky sessions)"]
+  LB --> N1
+  LB --> N2["Node 2 (same as Node 1)"]
 
-    N1 --> P["PostgreSQL"]
-    N2 --> P
+  subgraph N1["Node 1 (packages/server)"]
+    WS["WsEndpoint<br/>auth, rate limits, backpressure"] --> RM["RoomManager"]
+    RM --> R["Room<br/>Y.Doc + awareness + persist queue"]
+    HTTP["HTTP API<br/>auth, RBAC, CSRF, files"]
+  end
 
-    A --> IA["IndexedDB"]
-    B --> IB["IndexedDB"]
+  R -->|"batched INSERT, then Ack"| PG[("PostgreSQL<br/>doc_snapshots + doc_updates,<br/>users, sessions, memberships")]
+  HTTP --> PG
+  R <-->|"updates, awareness,<br/>sync requests"| RD[("Redis pub/sub")]
+  RD <--> N2
+  N2 --> PG
 ```
 
-### What belongs where?
+A keystroke becomes a Yjs transaction in the browser. The sync engine sends it as a numbered `Update` frame. On the server, `WsEndpoint` rate-limits and decodes the frame, and `Room` checks the role, validates the update's structure and applies it. The effective update is relayed to local clients and published on Redis for other nodes; relaying does not wait for the database. The persist loop writes updates in batches to the append-only `doc_updates` table and sends `Ack(seq)` only after the commit. Compaction later merges the log into `doc_snapshots` under an advisory lock. On reconnect, client and server exchange state vectors so each side sends only what the other is missing. Full write and read paths: [ARCHITECTURE.md](docs/ARCHITECTURE.md), wire format: [PROTOCOL.md](docs/PROTOCOL.md).
 
-  State                   System               Why
-  ----------------------- -------------------- --------------------------
-  Document state          Yjs / PostgreSQL     correctness + durability
-  Snapshots               PostgreSQL           bounded replay
-  Append-only updates     PostgreSQL           durable synchronization
-  Presence                memory / Redis       ephemeral
-  Local offline replica   IndexedDB            survive reload/restart
-  Cross-node relay        Redis                node-to-node propagation
-  Auth/session limits     PostgreSQL + Redis   shared security state
+## Quick start
 
-------------------------------------------------------------------------
+Requires Node 20+ (CI uses 22), plus PostgreSQL 16 and Redis 7 for the server tests.
 
-## 🧬 Collaboration algorithm
-
-``` mermaid
-sequenceDiagram
-    participant C as Client
-    participant W as WebSocket Node
-    participant DB as PostgreSQL
-    participant P as Peers
-
-    C->>W: Yjs update
-    W->>W: Validate + authorize
-    W->>DB: Persist update
-    DB-->>W: COMMIT
-    W-->>C: ACK
-    W-->>P: Relay update
-    P-->>P: Apply CRDT update
-```
-
-### The durability invariant
-
-> **ACK means PostgreSQL commit.**
-
-Not:
-
-> "The server received the packet."
-
-This is encoded in the architecture and tested during database-outage
-scenarios.
-
-------------------------------------------------------------------------
-
-## 🔄 Offline-first synchronization
-
-``` mermaid
-stateDiagram-v2
-    [*] --> Connected
-    Connected --> Editing: local edit
-    Editing --> Connected: persist + relay
-    Connected --> Offline: socket lost
-    Offline --> OfflineEditing: local edits
-    OfflineEditing --> Reconnecting: network returns
-    Reconnecting --> Syncing: state-vector handshake
-    Syncing --> Connected: missing state merged
-    Syncing --> Reconnecting: retry
-```
-
-Every document replica can survive:
-
--   socket loss
--   browser reload
--   browser restart
--   temporary server failure
-
-Reconnect uses a state-vector synchronization path rather than replacing
-the local document with a stale server copy.
-
-------------------------------------------------------------------------
-
-## 🧠 Why CRDT?
-
-Tandem uses **Yjs / YATA**, not last-write-wins document replacement.
-
-The system explicitly exercises:
-
--   convergence
--   idempotence
--   commutativity
--   duplicate delivery
--   reordering
--   dropped frames
--   delayed frames
--   stale replicas
--   offline edits
--   reconnect storms
-
-The hardening pass also found a Yjs liveness edge case where pending
-items could remain despite their dependencies arriving. A healing apply
-is used consistently, and the regression is covered by tests.
-
-------------------------------------------------------------------------
-
-## 🌐 Multi-node design
-
-``` mermaid
-flowchart TB
-    LB["nginx / load balancer"]
-    LB --> N1["Node 1"]
-    LB --> N2["Node 2"]
-
-    N1 <--> R["Redis"]
-    N2 <--> R
-
-    N1 --> DB["PostgreSQL"]
-    N2 --> DB
-
-    DB --> S["Snapshots + Append-only Update Log"]
-```
-
-The collaboration nodes are designed to be stateless with respect to
-durable document history.
-
-Two-node correctness was tested with Redis relay and shared PostgreSQL.
-
-**Horizontal throughput scaling was not claimed** because both nodes and
-the generator shared the same 2-vCPU machine.
-
-------------------------------------------------------------------------
-
-## 🛡️ Security model
-
-Server-side authorization is enforced on HTTP endpoints and WebSocket
-joins/updates.
-
-Included:
-
--   OWNER / EDITOR / VIEWER authorization
--   IDOR protection
--   privilege-escalation tests
--   scrypt password hashing
--   hashed session tokens
--   `httpOnly` cookies
--   CSRF protection
--   cross-site WebSocket origin checks
--   strict CSP
--   rate limiting
--   message and queue limits
--   protected metrics
--   audit logging
--   request IDs
--   graceful shutdown
--   no code execution
-
-### Deliberate security decision
-
-``` text
-"Run Code"
-     │
-     ▼
-No safe sandbox available
-     │
-     ▼
-FEATURE DISABLED
-```
-
-This is a security feature, not a missing TODO.
-
-------------------------------------------------------------------------
-
-## 🧪 Correctness & failure matrix
-
-  Scenario                       Result
-  ------------------------------ --------------------------------------
-  Concurrent edits               Converged
-  Duplicate frames               Idempotent
-  Reordered frames               Converged
-  30% silent loss                Recovered via resync
-  Offline edits                  Recovered and merged
-  1,000-client reconnect storm   All rejoined and converged
-  Node SIGKILL                   Recovered
-  Redis restart                  Recovered
-  PostgreSQL outage              Acks withheld; edits later committed
-  Rolling restart                Converged + durable
-  Backup / restore               31/31 documents restored
-
-The final hardening pass recorded **88/88 Vitest tests** and **3/3
-browser E2E scenarios** passing. The 2026-10-14 audit
-([`docs/AUDIT_2026-10-14.md`](docs/AUDIT_2026-10-14.md)) added session
-revalidation, an offline property test with byte-level replica checks and
-a kill -9 crash test; it found and fixed an acknowledged-but-unstored
-update (P10) and a node crash on PostgreSQL connection loss. Now:
-**100 Vitest tests, 3/3 E2E** (`docs/evidence/2026-10-14/final-tests.log`).
-
-| 2026-10-14 check | Result |
-| --- | --- |
-| Offline property, 200 random schedules, 2 nodes | all replicas and PostgreSQL identical (content, state vector, bytes) |
-| Crash: server and PostgreSQL kill -9 during writes, 12 cycles | 3,706 acks, 0 missing |
-| Chaos with real node processes, 2 runs | 7,160 / 7,088 inserts, 0 lost |
-| Logout / revoked / expired session | live sockets closed on every node |
-| Load, 50 editors, shared 4-vCPU machine (load avg 23-30) | propagation p50 25-44 ms (1 node), 74-166 ms (2 nodes); p99 0.3-1.4 s |
-
-------------------------------------------------------------------------
-
-## 📊 Load testing
-
-All results below are from the recorded 2026-10-05 runs on a **2-vCPU
-VM** shared by the server, databases, Redis, nginx where applicable, and
-load generator.
-
-### Healthy operating range
-
-At **100 fully active clients**:
-
--   ≈191 edits/s achieved
--   propagation p99: **95.8 ms**
--   durable ACK p99: **118 ms**
--   server CPU: **19.2%**
--   peak RSS: **119 MiB**
-
-### 1,000 connected / 100 editing
-
--   ≈193 edits/s
--   propagation p99: **28.4 ms**
--   durable ACK p99: **62 ms**
--   peak RSS: **124 MiB**
-
-### Reconnect storm
-
-At 1,000 simultaneous reconnects:
-
--   all clients rejoined in ≤ **3.0 s**
--   all offline edits saved + converged in ≤ **3.3 s**
-
-### Important interpretation
-
-At 500--1,000 fully active clients, the load generator saturated the
-shared 2-vCPU machine. Those rows demonstrate **correctness under
-overload**, not server capacity.
-
-------------------------------------------------------------------------
-
-## 💥 Chaos testing
-
-``` mermaid
-flowchart LR
-    A["Healthy cluster"] --> B["Inject partition"]
-    B --> C["Inject latency"]
-    C --> D["Drop / reorder traffic"]
-    D --> E["SIGKILL node"]
-    E --> F["Restart node"]
-    F --> G["Redis restart"]
-    G --> H["PostgreSQL outage"]
-    H --> I["Heal faults"]
-    I --> J["Verify convergence"]
-    J --> K["Verify database == replicas"]
-```
-
-Recorded chaos:
-
--   2 runs
--   8 clients
--   2 nodes
--   network partition
--   200 ms latency injection
--   reconnect storm
--   node SIGKILL
--   Redis restart
--   PostgreSQL outage
-
-Across the recorded runs:
-
-> **11,800 inserts · 0 missing · 0 duplicated · converged · DB matched**
-
-------------------------------------------------------------------------
-
-## 🚀 Deployment
-
-The deployment stack includes:
-
-``` text
-nginx
-  │
-  ├── Node 1
-  └── Node 2
-       │
-       ├── Redis
-       └── PostgreSQL
-```
-
-The production-style smoke test covers:
-
--   19 deployment checks
--   non-root image
--   read-only root filesystem
--   dropped capabilities
--   health endpoints
--   CSP
--   cookie flags
--   CSRF
--   cross-origin WebSocket rejection
--   IDOR
--   authenticated edit
--   rolling restart
--   backup + restore
-
-The recorded image used a local stand-in for the official Node base
-because Docker Hub was blocked in the validation environment. This is
-explicitly documented and not presented as an official-base
-verification.
-
-------------------------------------------------------------------------
-
-## 🧰 Quick start
-
-``` bash
+```bash
+git clone https://github.com/siddhaantxsingh/TANDEM-Collaborative-Editor.git
+cd TANDEM-Collaborative-Editor
 npm ci
 npm run build
 npm run typecheck
-npx vitest run          # needs PostgreSQL + Redis (TEST_DATABASE_ADMIN_URL, TEST_REDIS_URL)
-npx playwright test     # CHROMIUM_PATH=... if the installed Chromium build differs
-npx tsx tools/crash-ack.ts --mode server   # kill -9 during writes
 ```
 
-Docker:
+Tests (as in CI):
 
-``` bash
-docker compose up --build
+```bash
+export TEST_DATABASE_ADMIN_URL=postgres://postgres@127.0.0.1:5432/postgres
+export TEST_REDIS_URL=redis://127.0.0.1:6379
+npx vitest run                                    # unit, integration, property, fuzz
+npx playwright install chromium && npx playwright test   # browser E2E
+npx tsx tools/crash-ack.ts --cycles 4 --clients 4 --mode server   # kill -9 during writes
+npx tsx tools/chaos.ts                            # multi-node fault injection
 ```
 
-Useful tools:
+Run the full two-node stack (PostgreSQL, Redis, two app nodes, nginx on port 8080):
 
-``` bash
-tools/loadmatrix.sh
-tools/chaos.ts
-tools/deploy-smoke.sh
-tools/pending-check.ts
+```bash
+cp .env.example .env        # set POSTGRES_PASSWORD and METRICS_TOKEN
+docker compose up --build -d
+curl -fs http://localhost:8080/health/ready
+scripts/demo.sh http://localhost:8080   # seeds two demo users sharing a workspace
 ```
 
-------------------------------------------------------------------------
+Then open http://localhost:8080 in two browsers and log in as the two users the script prints.
 
-## 📚 Documentation
+## Results
 
-  ------------------------------------------------------------------------------------------------
-  Area                                Link
-  ----------------------------------- ------------------------------------------------------------
-  Architecture                        [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+### Load (2026-10-05, one 2-vCPU VM shared by server, PostgreSQL, Redis and load generator)
 
-  Protocol                            [`docs/PROTOCOL.md`](docs/PROTOCOL.md)
+Each client is a full Yjs replica editing at 2 edits/s, 10 clients per document. Every row converged, with the database identical to the clients.
 
-  Correctness                         [`docs/CORRECTNESS.md`](docs/CORRECTNESS.md)
+| Nodes | Clients (editing) | Edits/s | Propagation p50 / p99 | Durable ack p99 | Server CPU | Peak RSS |
+|---:|---:|---:|---|---:|---:|---:|
+| 1 | 50 | 97 | 3.0 / 24.9 ms | 36 ms | 15.2 % | 110 MiB |
+| 1 | 100 | 191 | 5.0 / 95.8 ms | 118 ms | 19.2 % | 119 MiB |
+| 1 | 1,000 (100) | 193 | 1.8 / 28.4 ms | 62 ms | 19.4 % | 124 MiB |
+| 2 | 100 | 192 | 4.8 / 59.4 ms | 78 ms | 16.5 % + 16.5 % | 125 / 119 MiB |
 
-  Security                            [`docs/SECURITY.md`](docs/SECURITY.md)
+At 500–1,000 fully active clients the load generator saturated the 2 cores, so those rows show correctness under overload, not server capacity. Two nodes on the same two cores cannot show horizontal scaling, and none is claimed. After a 1,000-client reconnect storm, every client had rejoined within 3.0 s and every offline edit was saved and converged within 3.3 s.
 
-  Testing                             [`docs/TESTING.md`](docs/TESTING.md)
+A 2026-10-14 re-run on a shared 4-vCPU container at load average 23–30 gave propagation p50 25–44 ms on 1 node and 74–166 ms on 2 nodes, with 50 editors (p99 0.3–1.4 s). The single-node median is under 50 ms; p95 and p99 are not. Full tables: [PERFORMANCE.md](docs/PERFORMANCE.md), raw data in [`docs/results/`](docs/results/) and [`docs/evidence/2026-10-14/`](docs/evidence/2026-10-14/).
 
-  Performance                         [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md)
+### Chaos (2026-10-05, 8 clients, 2 nodes, faults injected one after another)
 
-  Deployment                          [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+| Fault | Propagation recovered after heal (run 1 / run 2) |
+|---|---|
+| Half-open network partition of node 1, 8 s | 302 / 297 ms |
+| 200 ms added latency on node 1, 5 s | 233 / 246 ms |
+| Reconnect storm | 185 / 210 ms |
+| SIGKILL node 1, restart after 3 s | 1,234 / 92 ms |
+| Redis restart | 20 / 19 ms |
+| PostgreSQL stopped 4 s | 20 / 1 ms (acks withheld, all committed 215 ms after return) |
+| SIGKILL node 2, restart after 1.5 s | 691 / 942 ms |
 
-  Audits                              [`docs/ARCHITECTURE_AUDIT.md`](docs/ARCHITECTURE_AUDIT.md) ·
-                                      [`docs/HARDENING_AUDIT.md`](docs/HARDENING_AUDIT.md) ·
-                                      [`docs/FINAL_AUDIT.md`](docs/FINAL_AUDIT.md)
+Totals: 5,928 and 5,872 inserts, 0 missing or duplicated, converged, database matched ([`chaos-v2-2026-10-05.log`](docs/results/chaos-v2-2026-10-05.log)). Node-kill recovery times include the client's randomized reconnect backoff.
 
-  ADRs                                [`docs/adr/`](docs/adr/)
+## How correctness is verified
 
-  2026-10-14 audit                    [`docs/AUDIT_2026-10-14.md`](docs/AUDIT_2026-10-14.md) ·
-                                      [`docs/REQUIREMENTS_MATRIX.md`](docs/REQUIREMENTS_MATRIX.md) ·
-                                      [`docs/OWNER_ACTIONS.md`](docs/OWNER_ACTIONS.md)
-  ------------------------------------------------------------------------------------------------
+| Layer | What runs | Evidence |
+|---|---|---|
+| Unit, integration, property, fuzz | 100 Vitest tests in 14 files: codec, CRDT, sync, convergence under duplicated / dropped (30 %) / reordered / delayed frames, multi-node, compaction, auth, security, limits, sessions, regressions | [`final-tests.log`](docs/evidence/2026-10-14/final-tests.log) |
+| Offline property test | fast-check, 200 schedules, byte-level comparison of all replicas and PostgreSQL | [`offline-property.test.ts`](packages/server/test/offline-property.test.ts) |
+| Browser E2E | 3 Playwright scenarios in Chromium: live collaboration with viewer read-only check, reload while offline, browser restart while offline | [`e2e/`](e2e/) |
+| Crash durability | `tools/crash-ack.ts`: SIGKILL server or PostgreSQL during writes, then check every acked insert is stored | [`crash-ack.log`](docs/evidence/2026-10-14/crash-ack.log) |
+| Chaos | `tools/chaos.ts`: real node processes behind a fault-injecting TCP proxy | [`chaos-multinode.log`](docs/evidence/2026-10-14/chaos-multinode.log) |
+| Deployment smoke | `tools/deploy-smoke.sh`: 19 checks through nginx (CSP, cookie flags, CSRF, cross-origin WebSocket refusal, IDOR, ...), rolling restart under load, backup and restore (31/31 documents) | [`deploy-smoke-2026-10-05.log`](docs/results/deploy-smoke-2026-10-05.log) |
+| CI | build, typecheck, Vitest, Playwright, smoke + load test, crash test, chaos test, Docker build with non-root check | [`ci.yml`](.github/workflows/ci.yml) |
 
-------------------------------------------------------------------------
+The audit's full local run had one CPU-bound test time out at load average about 30 (99/100). It was made faster and re-run alone (7/7 in its file), and CI runs the whole suite green. Invariants and the fault model: [CORRECTNESS.md](docs/CORRECTNESS.md), [TESTING.md](docs/TESTING.md).
 
-## 🚧 Honest limitations
+## Design decisions
 
-Not claimed:
+- **CRDT (Yjs), not operational transformation.** Converges for any delivery order without a central sequencer, and duplicates are harmless. The cost: tombstones make documents grow with history, mitigated by Yjs GC and compaction ([ADR-001](docs/adr/001-crdt-yjs.md)). There is no OT code in the repository.
+- **Own versioned binary protocol instead of y-websocket.** Acks tied to durability, per-message authorization, an explicit error model and a version byte on every frame, at the cost of more code than the stock provider ([ADR-002](docs/adr/002-explicit-binary-protocol.md), [PROTOCOL.md](docs/PROTOCOL.md)).
+- **Ack only after the write is durable.** Ack latency goes up, but "saved" in the UI is true after a crash ([ADR-003](docs/adr/003-ack-after-persist.md)).
+- **Snapshot plus append-only log with idempotent compaction.** Loading reads the snapshot and all remaining log rows, because sequence numbers can commit out of order ([ADR-004](docs/adr/004-snapshot-plus-log.md)).
+- **Multi-node through Redis pub/sub, no sticky sessions.** Any node serves any document. Redis is at-most-once, so permission changes are also re-checked periodically ([ADR-006](docs/adr/006-multinode-redis.md)).
+- **Authorization only on the server**, for HTTP and for every WebSocket join and update ([ADR-005](docs/adr/005-server-side-authorization.md), [SECURITY.md](docs/SECURITY.md)).
 
--   real production traffic
--   horizontal throughput scaling
--   external penetration testing
--   MFA/password recovery
--   end-to-end encryption
--   semantic conflict detection
--   code execution
--   formal verification
--   operational transformation (only the Yjs CRDT is used)
--   a verified Docker build in the 2026-10-14 audit (disk was full; see
-    [`docs/OWNER_ACTIONS.md`](docs/OWNER_ACTIONS.md))
+## Limitations and status
 
-The project's correctness claims are **test-backed guarantees**, not
-formal proofs.
+- **No real deployment, and the Docker stack was not built in the 2026-10-14 audit** (the shared disk was full). The 2026-10-05 smoke test used a local stand-in for the Node base image because Docker Hub was blocked. CI does build the image. BLOCKED items and steps: [OWNER_ACTIONS.md](docs/OWNER_ACTIONS.md).
+- **Load numbers come from shared machines.** No horizontal scaling result, and sub-50 ms holds only for the single-node median.
+- **Not provided:** MFA or password recovery, end-to-end encryption, semantic conflict detection, code execution, formal verification, external penetration testing.
+- "Lint" is only `tsc --noEmit`; there is no ESLint.
 
-------------------------------------------------------------------------
+## Repository layout
 
-<div align="center">
-### A collaborative editor is easy to demo.
+```text
+packages/
+  protocol/   wire codec and the client sync engine (shared by browser, tests, tools)
+  server/     HTTP API, WebSocket endpoint, rooms, persistence, Redis bus, auth
+  client/     React + Vite + Monaco UI
+e2e/          Playwright browser tests
+tools/        load test, chaos, crash-ack, deploy smoke, pending check
+scripts/      backup, restore, demo seeding
+deploy/       nginx config for the two-node stack
+docs/         architecture, protocol, correctness, security, performance, ADRs, evidence
+```
 
-### Tandem is about making collaboration converge, persist, recover, and survive failure.
-</div>
+## Documentation
+
+| Area | Link |
+|---|---|
+| Architecture | [ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Protocol | [PROTOCOL.md](docs/PROTOCOL.md) |
+| Correctness | [CORRECTNESS.md](docs/CORRECTNESS.md) |
+| Testing | [TESTING.md](docs/TESTING.md) |
+| Performance | [PERFORMANCE.md](docs/PERFORMANCE.md) |
+| Security | [SECURITY.md](docs/SECURITY.md) |
+| Deployment | [DEPLOYMENT.md](docs/DEPLOYMENT.md) |
+| Requirements matrix | [REQUIREMENTS_MATRIX.md](docs/REQUIREMENTS_MATRIX.md) |
+| Audit and scorecard (2026-10-14) | [AUDIT_2026-10-14.md](docs/AUDIT_2026-10-14.md) |
+| Earlier audits | [ARCHITECTURE_AUDIT.md](docs/ARCHITECTURE_AUDIT.md), [HARDENING_AUDIT.md](docs/HARDENING_AUDIT.md), [FINAL_AUDIT.md](docs/FINAL_AUDIT.md) |
+| Owner actions | [OWNER_ACTIONS.md](docs/OWNER_ACTIONS.md) |
+| ADRs | [`docs/adr/`](docs/adr/) |
+
+---
+
+Built by [Siddhant Singh](https://github.com/siddhaantxsingh). Licensed under the [MIT License](LICENSE).
