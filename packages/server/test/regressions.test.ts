@@ -48,6 +48,38 @@ describe("audit regressions", () => {
     c.ws.close();
   });
 
+  it("P10 (2026-10-14): a second update with missing dependencies, while another is already pending, is stored before it is acknowledged", async () => {
+    // Yjs merges a new pending update into the existing pending-structs
+    // object in place, so a check for "a new pending object appeared" missed
+    // it: the update was acknowledged without being written. Found by the
+    // offline property test (offline-property.test.ts).
+    const u = await newUser(s.base);
+    const { docId } = await workspaceWithDoc(u.http);
+    const a = new Y.Doc();
+    const t = a.getText("content");
+    const step = (ch: string) => {
+      const sv = Y.encodeStateVector(a);
+      t.insert(t.length, ch);
+      return Y.encodeStateAsUpdate(a, sv);
+    };
+    const u1 = step("a");
+    const u2 = step("b"); // needs u1
+    const u3 = step("c"); // needs u2
+    const c = await joined(s, u.http.cookie, docId);
+    c.send({ type: MsgType.Update, ch: 1, seq: 2, update: u2 });
+    await waitFor(() => c.msgs.some((m) => m.type === MsgType.Ack && m.seq === 2), 5000, "ack 2");
+    c.send({ type: MsgType.Update, ch: 1, seq: 3, update: u3 });
+    await waitFor(() => c.msgs.some((m) => m.type === MsgType.Ack && m.seq === 3), 5000, "ack 3");
+    // Both acknowledged updates must be in PostgreSQL: with the missing
+    // dependency added, the stored state reads "abc".
+    const { loadDocState } = await import("../src/store.js");
+    const stored = new Y.Doc();
+    Y.applyUpdate(stored, (await loadDocState(s.app.db, docId)).state);
+    Y.applyUpdate(stored, u1);
+    expect(stored.getText("content").toString()).toBe("abc");
+    c.ws.close();
+  });
+
   it("P2: a document larger than one frame (1.8 MB) can be opened", async () => {
     const u = await newUser(s.base);
     const { docId } = await workspaceWithDoc(u.http);

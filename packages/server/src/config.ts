@@ -39,6 +39,11 @@ export interface Config {
   registrationsPerHour: number;
   heartbeatMs: number;
   durabilitySweepMs: number; // 0 = off
+  // Interval at which live WebSocket connections are re-checked against the
+  // database: session still valid, membership and role unchanged, document
+  // not deleted (0 = off). Bus events apply such changes at once; this check
+  // covers bus messages that were lost and changes made outside the API.
+  sessionRevalidateMs: number;
 }
 
 function int(name: string, def: number): number {
@@ -89,6 +94,7 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
     registrationsPerHour: int("REGISTRATIONS_PER_HOUR", 20),
     heartbeatMs: int("HEARTBEAT_MS", 30_000),
     durabilitySweepMs: int("DURABILITY_SWEEP_MS", 15_000),
+    sessionRevalidateMs: int("SESSION_REVALIDATE_MS", 30_000),
     ...overrides,
   };
 }

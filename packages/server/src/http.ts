@@ -12,6 +12,7 @@ import {
   clearSessionCookie,
   createSession,
   deleteSession,
+  deleteUserSessions,
   dummyPasswordHash,
   hashPassword,
   parseCookies,
@@ -19,6 +20,7 @@ import {
   sessionCookie,
   sessionUser,
   type SessionUser,
+  tokenHash,
   verifyPassword,
 } from "./auth.js";
 import { audit, auditBestEffort } from "./audit.js";
@@ -130,7 +132,9 @@ export class HttpApi {
     private readonly log: Logger,
     private readonly metrics: Metrics,
     private readonly limiters: Limiters,
-    private readonly onLogout: (userId: string) => void,
+    // Close live WebSocket connections of a revoked session / of every
+    // session of a user on this node (other nodes learn it from the bus).
+    private readonly revoke: { session(tokenHashHex: string): void; user(userId: string): void },
   ) {
     this.defineRoutes();
   }
@@ -197,11 +201,28 @@ export class HttpApi {
 
     r("POST", "/api/auth/logout", true, async (c) => {
       const token = parseCookies(c.req.headers.cookie)[SESSION_COOKIE];
-      if (token) await deleteSession(this.db, token);
+      if (token) {
+        await deleteSession(this.db, token);
+        // Only this session's sockets, on every node. The user's other
+        // sessions (other devices) stay valid and connected.
+        const h = tokenHash(token).toString("hex");
+        this.revoke.session(h);
+        this.bus.publishControl({ type: "session-revoked", tokenHash: h });
+      }
       await auditBestEffort(this.db, { actorId: c.user!.id, action: "auth.logout", ...this.auditCtx(c) }, this.log, this.metrics);
       c.res.setHeader("Set-Cookie", clearSessionCookie(this.cfg.cookieSecure));
-      this.onLogout(c.user!.id);
       return { ok: true };
+    });
+
+    // Log out everywhere (e.g. after a lost device): every session of the
+    // user is deleted and its live sockets on every node are closed.
+    r("POST", "/api/auth/logout-all", true, async (c) => {
+      const n = await deleteUserSessions(this.db, c.user!.id);
+      this.revoke.user(c.user!.id);
+      this.bus.publishControl({ type: "user-sessions-revoked", userId: c.user!.id });
+      await auditBestEffort(this.db, { actorId: c.user!.id, action: "auth.logout_all", details: { sessions: n }, ...this.auditCtx(c) }, this.log, this.metrics);
+      c.res.setHeader("Set-Cookie", clearSessionCookie(this.cfg.cookieSecure));
+      return { ok: true, sessions: n };
     });
 
     r("GET", "/api/me", true, async (c) => ({ user: c.user }));

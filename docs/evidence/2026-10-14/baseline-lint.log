@@ -1,0 +1,5 @@
+
+> tandem@0.2.0 lint
+> tsc -b packages/protocol packages/server --noEmit
+
+exit 0

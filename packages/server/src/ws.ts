@@ -9,7 +9,7 @@ import { randomUUID } from "node:crypto";
 import { decode, encodeFrames, encodeVersion1Error, ErrorCode, LIMITS, type Message, MsgType, ProtocolError, Reassembler } from "@tandem/protocol";
 import { WebSocket, WebSocketServer } from "ws";
 
-import { parseCookies, SESSION_COOKIE, sessionUser, type SessionUser } from "./auth.js";
+import { parseCookies, SESSION_COOKIE, sessionForSocket, type SessionUser } from "./auth.js";
 import type { Config } from "./config.js";
 import type { Db } from "./db.js";
 import type { Logger } from "./logger.js";
@@ -75,9 +75,12 @@ class Connection implements Peer {
   private outBytes = 0;
   private nextFragmentId = 1;
 
+  expiryTimer: NodeJS.Timeout | undefined;
+
   constructor(
     readonly ws: WebSocket,
     readonly user: SessionUser,
+    readonly tokenHash: string, // hex; identifies the session in revocation events
     private readonly cfg: Config,
     private readonly metrics: Metrics,
     private readonly budget: SendBudget,
@@ -130,6 +133,7 @@ class Connection implements Peer {
   close(code: number, reason: string): void {
     if (this.closed) return;
     this.closed = true;
+    if (this.expiryTimer) clearTimeout(this.expiryTimer);
     this.releaseQueue();
     this.ws.close(code, reason);
     // Make sure the socket goes away even if the peer never answers.
@@ -168,6 +172,8 @@ export class WsEndpoint {
   private conns = new Set<Connection>();
   private sessions = new Map<string, Connection>(); // user id + session id -> connection
   private heartbeat: NodeJS.Timeout;
+  private revalidateTimer: NodeJS.Timeout | undefined;
+  private revalidating = false;
   private budget: SendBudget;
 
   constructor(
@@ -196,6 +202,47 @@ export class WsEndpoint {
       }
     }, cfg.heartbeatMs);
     this.heartbeat.unref();
+    if (cfg.sessionRevalidateMs > 0) {
+      this.revalidateTimer = setInterval(() => void this.revalidate(), cfg.sessionRevalidateMs);
+      this.revalidateTimer.unref();
+    }
+  }
+
+  // A socket is authenticated once, at the upgrade. Periodically check that
+  // its session still exists and has not expired (it may have been revoked
+  // on another node whose bus message was lost, or deleted by an
+  // administrator), then let the rooms re-check membership and roles.
+  // Only connections that existed before the query are judged by it, so a
+  // connection opened meanwhile is never closed on a stale answer. A
+  // database error leaves connections open (fail-open; edits cannot be
+  // acknowledged while the database is down anyway) and is retried next time.
+  async revalidate(): Promise<void> {
+    if (this.revalidating || this.shuttingDown) return;
+    this.revalidating = true;
+    try {
+      const snapshot = [...this.conns].filter((c) => !c.closed);
+      const hashes = [...new Set(snapshot.map((c) => c.tokenHash))];
+      const valid = new Set<string>();
+      for (let i = 0; i < hashes.length; i += 1000) {
+        const r = await this.db.query(
+          "SELECT encode(token_hash, 'hex') AS h FROM sessions WHERE token_hash IN (SELECT decode(x, 'hex') FROM unnest($1::text[]) AS x) AND expires_at > now()",
+          [hashes.slice(i, i + 1000)],
+        );
+        for (const row of r.rows) valid.add(row.h as string);
+      }
+      for (const c of snapshot) {
+        if (c.closed || valid.has(c.tokenHash)) continue;
+        this.metrics.sessionsClosed.inc({ reason: "revalidation" });
+        c.log.info("session no longer valid; closing", { conn: c.id });
+        c.close(CloseCode.Unauthorized, "session ended");
+      }
+      await this.rooms.revalidateMembers();
+    } catch (err) {
+      this.metrics.errors.inc({ component: "revalidation" });
+      this.log.warn("revalidation of live connections failed; will retry", { err: (err as Error).message });
+    } finally {
+      this.revalidating = false;
+    }
   }
 
   get connectionCount() {
@@ -213,22 +260,32 @@ export class WsEndpoint {
     if (this.shuttingDown) return reject(503, "Service Unavailable");
     if (!originAllowed(req.headers.origin, req.headers.host, this.cfg.allowedOrigins)) return reject(403, "Forbidden");
     if (this.conns.size >= this.cfg.maxConnections) return reject(503, "Service Unavailable");
-    let user: SessionUser | undefined;
+    let session: Awaited<ReturnType<typeof sessionForSocket>>;
     try {
-      user = await sessionUser(this.db, parseCookies(req.headers.cookie)[SESSION_COOKIE]);
+      session = await sessionForSocket(this.db, parseCookies(req.headers.cookie)[SESSION_COOKIE]);
     } catch (err) {
       this.log.error("session lookup failed", { err: (err as Error).message });
       return reject(503, "Service Unavailable");
     }
-    if (!user) return reject(401, "Unauthorized");
-    const u = user;
-    this.wss.handleUpgrade(req, socket, head, (ws) => this.accept(ws, u));
+    if (!session) return reject(401, "Unauthorized");
+    const s = session;
+    this.wss.handleUpgrade(req, socket, head, (ws) => this.accept(ws, s.user, s.tokenHash, s.expiresAt));
   }
 
-  private accept(ws: WebSocket, user: SessionUser) {
+  private accept(ws: WebSocket, user: SessionUser, tokenHash: string, expiresAt: Date) {
     const log = this.log.child({ user: user.id });
-    const conn = new Connection(ws, user, this.cfg, this.metrics, this.budget, log);
+    const conn = new Connection(ws, user, tokenHash, this.cfg, this.metrics, this.budget, log);
     this.conns.add(conn);
+    // Close exactly when the session expires (timers are limited to ~24.8
+    // days; longer sessions are caught by the periodic revalidation).
+    const ttl = expiresAt.getTime() - Date.now();
+    if (ttl < 2 ** 31 - 1) {
+      conn.expiryTimer = setTimeout(() => {
+        this.metrics.sessionsClosed.inc({ reason: "expiry" });
+        conn.close(CloseCode.Unauthorized, "session expired");
+      }, Math.max(0, ttl));
+      conn.expiryTimer.unref();
+    }
     this.metrics.wsConnections.inc();
     log.info("connected", { conn: conn.id });
     // The client must say Hello first; a socket that never does is closed.
@@ -268,6 +325,7 @@ export class WsEndpoint {
     });
     ws.on("close", () => {
       clearTimeout(handshake);
+      if (conn.expiryTimer) clearTimeout(conn.expiryTimer);
       conn.closed = true;
       conn.releaseQueue();
       this.conns.delete(conn);
@@ -371,6 +429,7 @@ export class WsEndpoint {
   closeAll() {
     this.shuttingDown = true;
     clearInterval(this.heartbeat);
+    if (this.revalidateTimer) clearInterval(this.revalidateTimer);
     for (const c of this.conns) c.close(CloseCode.ServerShutdown, "server shutting down");
   }
 
@@ -380,8 +439,21 @@ export class WsEndpoint {
 
   private shuttingDown = false;
 
-  // Close all sessions of one user (logout, account removal).
-  closeUser(userId: string) {
-    for (const c of this.conns) if (c.user.id === userId) c.close(CloseCode.Unauthorized, "session ended");
+  // Close the connections of one session (logout).
+  closeSession(tokenHashHex: string, reason: string) {
+    for (const c of this.conns)
+      if (c.tokenHash === tokenHashHex && !c.closed) {
+        this.metrics.sessionsClosed.inc({ reason });
+        c.close(CloseCode.Unauthorized, "session ended");
+      }
+  }
+
+  // Close all connections of one user (log out everywhere).
+  closeUser(userId: string, reason: string) {
+    for (const c of this.conns)
+      if (c.user.id === userId && !c.closed) {
+        this.metrics.sessionsClosed.inc({ reason });
+        c.close(CloseCode.Unauthorized, "session ended");
+      }
   }
 }

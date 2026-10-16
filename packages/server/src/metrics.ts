@@ -111,6 +111,8 @@ export class Metrics {
   readonly messagesOut = new Counter("tandem_messages_out_total", "Protocol messages sent by type");
   readonly errors = new Counter("tandem_errors_total", "Internal errors by component");
   readonly logLines = new Counter("tandem_log_lines_total", "Log lines by level (warn and error)");
+  readonly sessionsClosed = new Counter("tandem_ws_session_closed_total", "Live connections closed because their session ended, by reason (logout, logout_all, revalidation, expiry)");
+  readonly accessRevalidated = new Counter("tandem_access_revalidation_changes_total", "Live document access changed by periodic revalidation (removed, role, deleted)");
   readonly sessionsExpired = new Counter("tandem_sessions_expired_deleted_total", "Expired sessions deleted");
   readonly processCpu = new Gauge("tandem_process_cpu_seconds", "Process CPU time (user + system)");
   readonly processRss = new Gauge("tandem_process_resident_memory_bytes", "Resident set size");

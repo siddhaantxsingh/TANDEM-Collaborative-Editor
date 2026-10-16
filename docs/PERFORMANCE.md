@@ -165,3 +165,19 @@ run is after the fix: 0 "no live upstreams" errors.
 were recorded before this hardening pass with the previous tools (50 clients
 single node, 60 clients on two nodes; node kills, Redis and PostgreSQL
 restarts). They are kept for comparison only.
+
+## 2026-10-14 re-measurement (shared machine)
+
+`tools/loadmatrix.sh` with `SECONDS_PER_RUN=15 RATE=2`, 3 runs each, on a
+shared 4-vCPU container while other jobs ran (load average 23-30; see
+`docs/evidence/2026-10-14/load-run.log`, raw `load.jsonl`). All runs
+converged and the database matched.
+
+| Setup | Propagation p50 / p95 / p99 (ms) | Ack p50 / p99 (ms) |
+| --- | --- | --- |
+| 1 node, 50 editors | 32.8 / 201 / 308; 44.4 / 346 / 469; 25.2 / 254 / 511 | 53 / 392; 81 / 789; 46 / 772 |
+| 2 nodes + Redis, 50 editors | 73.6 / 877 / 1353; 166 / 561 / 1006; 100 / 364 / 537 | 106 / 1448; 199 / 1277; 129 / 861 |
+| 1 node, 1,000 connected, 50 editing | 60.2 / 437 / 694 | 312 / 1145 |
+
+These numbers mostly measure CPU contention. They support "50 editors" and
+a sub-50 ms median on one node, not a sub-50 ms p95/p99.

@@ -11,7 +11,7 @@
 //    retried; an overloaded connection is closed and resynchronizes.
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
-import { canEdit, ErrorCode, LIMITS, type Message, MsgType, Role } from "@tandem/protocol";
+import { canEdit, ErrorCode, LIMITS, type Message, MsgType, parseRole, Role } from "@tandem/protocol";
 import { applyUpdateHealing } from "@tandem/protocol/client";
 import * as awarenessProtocol from "y-protocols/awareness";
 import * as Y from "yjs";
@@ -36,6 +36,9 @@ interface Member {
   ch: number;
   role: Role;
   awarenessIds: Set<number>;
+  // Value of RoomManager.accessEpoch when the role was last set (join or
+  // membership event); revalidation does not overwrite newer information.
+  roleEpoch: number;
 }
 
 interface PersistItem {
@@ -124,8 +127,7 @@ export class Room {
       return ErrorCode.TooLarge;
     }
     this.captured = [];
-    const store = this.doc.store as unknown as { pendingStructs: unknown; pendingDs: unknown };
-    const pendingBefore = [store.pendingStructs, store.pendingDs];
+    const store = this.doc.store as unknown as { pendingStructs: { update: Uint8Array } | null; pendingDs: Uint8Array | null };
     try {
       applyUpdateHealing(this.doc, update, peer);
     } catch (err) {
@@ -140,7 +142,13 @@ export class Room {
     // held by Yjs as *pending* and produce no "update" event. They are still
     // information the client was promised is stored, so the raw update (a
     // superset; Yjs updates are idempotent) is persisted instead.
-    const stashed = store.pendingStructs !== pendingBefore[0] || store.pendingDs !== pendingBefore[1];
+    // Whenever anything is pending after the apply, the raw update is
+    // stored: Yjs merges a new pending update into the existing pending
+    // object in place (same object, new .update), so comparing objects
+    // before and after missed a second pending update and acknowledged it
+    // unstored (P10, docs/AUDIT_2026-10-14.md). Storing a raw update that was
+    // in fact fully integrated only costs bytes.
+    const stashed = store.pendingStructs !== null || store.pendingDs !== null;
     if (stashed) this.mgr.metrics.updatesPending.inc();
     const effective = stashed ? update : integrated;
     if (effective) {
@@ -394,6 +402,8 @@ export class RoomManager {
   // peer -> channel -> docId
   private channels = new Map<Peer, Map<number, string>>();
   private sweepTimer: NodeJS.Timeout | undefined;
+  // Incremented on every role assignment to a live member.
+  private accessEpoch = 0;
 
   constructor(
     readonly db: Db,
@@ -498,7 +508,7 @@ export class RoomManager {
       }
       if (!this.channels.get(peer)?.has(ch)) return; // connection closed while loading
       room.cancelUnload();
-      room.members.set(peer, { ch, role: access.role, awarenessIds: new Set() });
+      room.members.set(peer, { ch, role: access.role, awarenessIds: new Set(), roleEpoch: ++this.accessEpoch });
       peer.send({ type: MsgType.Joined, ch, docId, role: access.role });
       // Server state vector: the client answers with what we are missing
       // (offline edits); then send current presence.
@@ -574,7 +584,58 @@ export class RoomManager {
         if (role === undefined) {
           this.error(peer, m.ch, ErrorCode.Forbidden, "your access to this workspace was removed");
           this.leave(peer, m.ch);
+        } else {
+          m.roleEpoch = ++this.accessEpoch;
+          if (role !== m.role) {
+            m.role = role;
+            peer.send({ type: MsgType.RoleChanged, ch: m.ch, role });
+          }
+        }
+      }
+    }
+  }
+
+  // Re-check every live member against the database: document still
+  // exists, membership still exists, role unchanged. Membership changes are
+  // normally applied at once through bus events; Redis pub/sub is
+  // at-most-once, so a lost event (or a change made directly in the
+  // database) would otherwise leave a removed user able to read and write
+  // until they reconnect. A member whose role was set after the query began
+  // (newer bus event or join) is left alone.
+  async revalidateMembers(): Promise<void> {
+    if (this.rooms.size === 0) return;
+    const epoch = this.accessEpoch;
+    const docIds = [...this.rooms.keys()];
+    const existing = new Set(
+      (await this.db.query("SELECT id FROM documents WHERE id = ANY($1::text[])", [docIds])).rows.map((r) => r.id as string),
+    );
+    for (const docId of docIds) {
+      if (existing.has(docId) || !this.rooms.has(docId)) continue;
+      this.metrics.accessRevalidated.inc({ change: "deleted" });
+      this.log.warn("document deleted without a bus event; closing it", { docId });
+      await this.documentDeleted(docId);
+    }
+    const pairs = new Map<string, [string, string]>();
+    for (const room of this.rooms.values())
+      for (const peer of room.members.keys()) pairs.set(`${room.workspaceId}:${peer.user.id}`, [room.workspaceId, peer.user.id]);
+    if (pairs.size === 0) return;
+    const list = [...pairs.values()];
+    const r = await this.db.query(
+      "SELECT m.workspace_id, m.user_id, m.role FROM memberships m JOIN unnest($1::uuid[], $2::uuid[]) AS p(w, u) ON m.workspace_id = p.w AND m.user_id = p.u",
+      [list.map((p) => p[0]), list.map((p) => p[1])],
+    );
+    const roles = new Map<string, Role | undefined>();
+    for (const row of r.rows) roles.set(`${row.workspace_id}:${row.user_id}`, parseRole(row.role as string));
+    for (const room of [...this.rooms.values()]) {
+      for (const [peer, m] of [...room.members]) {
+        if (m.roleEpoch > epoch) continue;
+        const role = roles.get(`${room.workspaceId}:${peer.user.id}`);
+        if (role === undefined) {
+          this.metrics.accessRevalidated.inc({ change: "removed" });
+          this.error(peer, m.ch, ErrorCode.Forbidden, "your access to this workspace was removed");
+          this.leave(peer, m.ch);
         } else if (role !== m.role) {
+          this.metrics.accessRevalidated.inc({ change: "role" });
           m.role = role;
           peer.send({ type: MsgType.RoleChanged, ch: m.ch, role });
         }

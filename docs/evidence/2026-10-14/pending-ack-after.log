@@ -1,0 +1,15 @@
+# regressions.test.ts AFTER the fix
+ ✓ packages/server/test/regressions.test.ts > audit regressions > P1: an update with missing dependencies is stored before it is acknowledged 744ms
+ ✓ packages/server/test/regressions.test.ts > audit regressions > P10 (2026-10-14): a second update with missing dependencies, while another is already pending, is stored before it is acknowledged 608ms
+ ✓ packages/server/test/regressions.test.ts > audit regressions > P2: a document larger than one frame (1.8 MB) can be opened 937ms
+ ✓ packages/server/test/regressions.test.ts > audit regressions > P5: offline edits larger than one frame (1.2 MB) are uploaded on reconnect 1002ms
+ ✓ packages/server/test/regressions.test.ts > audit regressions > P3: presence of a replica that reconnects while its old socket is half-open is accepted; the old socket is closed 1423ms
+ ✓ packages/server/test/regressions.test.ts > audit regressions > P4: an update lost between nodes reaches the other node's clients (anti-entropy) 1207ms
+ ✓ packages/server/test/regressions.test.ts > protocol v2 connection rules > requires Hello first, answers with Welcome and limits 665ms
+ ✓ packages/server/test/regressions.test.ts > protocol v2 connection rules > closes a socket that never says Hello (handshake timeout) 812ms
+ ✓ packages/server/test/regressions.test.ts > protocol v2 connection rules > tells a client of another protocol version to reload, in that client's own format 669ms
+ ✓ packages/server/test/regressions.test.ts > protocol v2 connection rules > a second connection with the same session id replaces the first 1216ms
+ ✓ packages/server/test/regressions.test.ts > protocol v2 connection rules > errors refer to the refused update by its sequence number 1446ms
+ ✓ packages/server/test/regressions.test.ts > protocol v2 connection rules > limits the rate of document operations separately from other messages 564ms
+ ✓ packages/server/test/regressions.test.ts > protocol v2 connection rules > bounds the bytes waiting in a connection's inbound queue 536ms
+      Tests  13 passed (13)

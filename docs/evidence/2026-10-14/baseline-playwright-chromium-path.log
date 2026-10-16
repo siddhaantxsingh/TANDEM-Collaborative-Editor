@@ -1,0 +1,11 @@
+CHROMIUM_PATH=/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell (preinstalled build 1194; @playwright/test 1.63 expects 1243)
+ 18:15:38 up 10 min,  0 user,  load average: 7.74, 5.28, 2.33
+
+Running 3 tests using 1 worker
+
+  ✓  1 e2e/editor.spec.ts:30:1 › two users collaborate in real time, offline edits merge, viewers are read-only (8.6s)
+  ✓  2 e2e/offline.spec.ts:23:1 › reload while offline: edits survive, are shown as unsaved, and are saved after reconnecting (4.5s)
+  ✓  3 e2e/offline.spec.ts:61:1 › browser restart while offline: edits made before the restart are saved after reconnecting (6.3s)
+
+  3 passed (27.1s)
+exit 0

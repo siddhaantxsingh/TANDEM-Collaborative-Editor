@@ -1,0 +1,23 @@
+# session.test.ts + auth.test.ts AFTER the fix (verbose)
+ ✓ packages/server/test/session.test.ts > session revalidation of live sockets > logout through node 1 closes the same session's socket on node 2 871ms
+ ✓ packages/server/test/session.test.ts > session revalidation of live sockets > logout ends only that session; the user's other session stays connected 2088ms
+ ✓ packages/server/test/session.test.ts > session revalidation of live sockets > log out everywhere ends every session of the user on every node 923ms
+ ✓ packages/server/test/session.test.ts > session revalidation of live sockets > a session that expires while connected is closed 567ms
+ ✓ packages/server/test/session.test.ts > session revalidation of live sockets > a session deleted directly in the database (admin revocation, no bus event) is closed on every node 661ms
+ ✓ packages/server/test/session.test.ts > session revalidation of live sockets > a connection whose session is still valid is not disturbed by revalidation 1865ms
+ ✓ packages/server/test/session.test.ts > permission revalidation of live sockets (lost bus events) > membership removed in the database without a bus event: the socket loses the document and cannot write 1746ms
+ ✓ packages/server/test/session.test.ts > permission revalidation of live sockets (lost bus events) > role lowered to VIEWER in the database without a bus event: RoleChanged is sent and writes are refused 1184ms
+ ✓ packages/server/test/session.test.ts > permission revalidation of live sockets (lost bus events) > a document deleted without a bus event is closed for its live clients 941ms
+ ✓ packages/server/test/auth.test.ts > passwords > hashes with a salt and verifies 1269ms
+ ✓ packages/server/test/auth.test.ts > authentication > register, me, logout, login 1270ms
+ ✓ packages/server/test/auth.test.ts > authentication > validates registration input and rejects duplicates 715ms
+ ✓ packages/server/test/auth.test.ts > authentication > rate-limits login attempts 997ms
+ ✓ packages/server/test/auth.test.ts > authentication > rejects cross-origin state-changing requests and WebSocket upgrades 302ms
+ ✓ packages/server/test/auth.test.ts > authentication > rejects WebSocket connections without a session 3ms
+ ✓ packages/server/test/auth.test.ts > authorization > non-members cannot see workspaces or open documents 719ms
+ ✓ packages/server/test/auth.test.ts > authorization > viewers cannot edit: updates are rejected and never stored or broadcast 1206ms
+ ✓ packages/server/test/auth.test.ts > authorization > role changes apply to live connections; removal disconnects 1231ms
+ ✓ packages/server/test/auth.test.ts > authorization > the last owner cannot be demoted or removed 621ms
+ ✓ packages/server/test/auth.test.ts > authorization > rejects path traversal and invalid file names 451ms
+ ✓ packages/server/test/auth.test.ts > authorization > deleting a document disconnects its clients 423ms
+      Tests  21 passed (21)

@@ -30,6 +30,11 @@ export async function createApp(cfg: Config, opts: { log?: Logger } = {}): Promi
   const log = countingLogger(baseLog, metrics);
   const db = createDb(cfg.databaseUrl);
   db.on("error", (err) => log.error("database pool error", { err: err.message }));
+  // The pool listens for errors only on idle clients. A connection that
+  // fails while checked out and between statements (a transaction during a
+  // PostgreSQL crash) would emit an unhandled 'error' and kill the process.
+  // The statement in progress still fails and is handled by its caller.
+  db.on("connect", (client) => client.on("error", (err) => log.warn("database connection lost while in use", { err: err.message })));
   instrumentDb(db, metrics);
   const applied = await migrate(db);
   if (applied.length) log.info("migrations applied", { applied });
@@ -54,7 +59,15 @@ export async function createApp(cfg: Config, opts: { log?: Logger } = {}): Promi
     loginEmail: limiter("login-email", Math.max(1, Math.floor(perMin / 2)), 60_000),
     registerIp: limiter("register-ip", Math.max(1, cfg.registrationsPerHour), 3_600_000),
   };
-  const api = new HttpApi(db, rooms, bus, cfg, log, metrics, limiters, (userId) => ws.closeUser(userId));
+  const api = new HttpApi(db, rooms, bus, cfg, log, metrics, limiters, {
+    session: (h) => ws.closeSession(h, "logout"),
+    user: (userId) => ws.closeUser(userId, "logout_all"),
+  });
+  // Revocations made through another node (closing twice is harmless).
+  bus.onControl((e) => {
+    if (e.type === "session-revoked") ws.closeSession(e.tokenHash, "logout");
+    else if (e.type === "user-sessions-revoked") ws.closeUser(e.userId, "logout_all");
+  });
   // Expired sessions are useless and only grow the table.
   const cleanup = async () => {
     try {

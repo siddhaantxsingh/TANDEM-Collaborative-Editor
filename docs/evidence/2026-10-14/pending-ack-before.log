@@ -1,0 +1,8 @@
+# P10 regression against the ORIGINAL rooms.ts (failing-first)
+     × P10 (2026-10-14): a second update with missing dependencies, while another is already pending, is stored before it is acknowledged 894ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  packages/server/test/regressions.test.ts > audit regressions > P10 (2026-10-14): a second update with missing dependencies, while another is already pending, is stored before it is acknowledged
+AssertionError: expected 'ab' to be 'abc' // Object.is equality
+Expected: "abc"
+Received: "ab"
+      Tests  1 failed | 12 skipped (13)

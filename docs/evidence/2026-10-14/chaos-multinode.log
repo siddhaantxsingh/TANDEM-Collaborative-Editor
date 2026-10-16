@@ -1,0 +1,129 @@
+ 21:01:53 up 24 min,  0 user,  load average: 37.74, 33.93, 23.69
+## chaos run 1: 2 real node processes, private Redis :6390, private PostgreSQL :5499 (SIGKILL as the PostgreSQL fault)
+[21:02:01.649] network partition of node 1 for 8 s (half-open sockets)
+[21:02:10.569]   propagation recovered in 888 ms, acknowledgements in 124 ms
+[21:02:12.091] 200 ms added latency on node 1 for 5 s
+[21:02:17.785]   propagation recovered in 601 ms, acknowledgements in 648 ms
+[21:02:19.295] reconnect storm (all clients drop at once)
+[21:02:19.636]   propagation recovered in 314 ms, acknowledgements in 314 ms
+[21:02:21.171] SIGKILL node 19101, restart after 3 s
+[21:02:28.578]   propagation recovered in 2592 ms, acknowledgements in 2354 ms
+[21:02:30.102] restart Redis
+[21:02:30.710]   propagation recovered in 0 ms, acknowledgements in 26 ms
+[21:02:32.223] stop PostgreSQL for 4 s
+tools/pg-crash-cluster.sh: line 33: kill: (16023) - No such process
+tools/pg-crash-cluster.sh: line 33: kill: (27136) - No such process
+tools/pg-crash-cluster.sh: line 33: kill: (27138) - No such process
+tools/pg-crash-cluster.sh: line 33: kill: (31524) - No such process
+[21:02:45.551]   propagation recovered in 20 ms, acknowledgements in 5425 ms
+[21:02:47.068] SIGKILL node 19102, restart after 1.5 s
+[21:02:52.871]   propagation recovered in 2639 ms, acknowledgements in 2420 ms
+[21:02:54.386] stopped editing after 7160 inserts; waiting for convergence
+{
+  "events": [
+    {
+      "fault": "network partition of node 1 for 8 s (half-open sockets)",
+      "recoveredMs": 888,
+      "durableMs": 124
+    },
+    {
+      "fault": "200 ms added latency on node 1 for 5 s",
+      "recoveredMs": 601,
+      "durableMs": 648
+    },
+    {
+      "fault": "reconnect storm (all clients drop at once)",
+      "recoveredMs": 314,
+      "durableMs": 314
+    },
+    {
+      "fault": "SIGKILL node 19101, restart after 3 s",
+      "recoveredMs": 2592,
+      "durableMs": 2354
+    },
+    {
+      "fault": "restart Redis",
+      "recoveredMs": 0,
+      "durableMs": 26
+    },
+    {
+      "fault": "stop PostgreSQL for 4 s",
+      "recoveredMs": 20,
+      "durableMs": 5425
+    },
+    {
+      "fault": "SIGKILL node 19102, restart after 1.5 s",
+      "recoveredMs": 2639,
+      "durableMs": 2420
+    }
+  ],
+  "inserts": 7160,
+  "allSaved": true,
+  "converged": true,
+  "missingOrDuplicated": 0,
+  "databaseMatches": true
+}
+exit 0
+ 21:02:57 up 25 min,  0 user,  load average: 45.37, 37.06, 25.48
+## chaos run 2: 2 real node processes, private Redis :6390, private PostgreSQL :5499 (SIGKILL as the PostgreSQL fault)
+[21:03:06.644] network partition of node 1 for 8 s (half-open sockets)
+[21:03:15.864]   propagation recovered in 1188 ms, acknowledgements in 333 ms
+[21:03:17.387] 200 ms added latency on node 1 for 5 s
+[21:03:23.522]   propagation recovered in 1106 ms, acknowledgements in 1106 ms
+[21:03:25.022] reconnect storm (all clients drop at once)
+[21:03:25.270]   propagation recovered in 222 ms, acknowledgements in 222 ms
+[21:03:26.782] SIGKILL node 19101, restart after 3 s
+[21:03:33.148]   propagation recovered in 2698 ms, acknowledgements in 2448 ms
+[21:03:34.651] restart Redis
+[21:03:35.291]   propagation recovered in 36 ms, acknowledgements in 36 ms
+[21:03:36.792] stop PostgreSQL for 4 s
+[21:03:49.950]   propagation recovered in 0 ms, acknowledgements in 5815 ms
+[21:03:51.451] SIGKILL node 19102, restart after 1.5 s
+[21:03:55.968]   propagation recovered in 1599 ms, acknowledgements in 1535 ms
+[21:03:57.479] stopped editing after 7088 inserts; waiting for convergence
+{
+  "events": [
+    {
+      "fault": "network partition of node 1 for 8 s (half-open sockets)",
+      "recoveredMs": 1188,
+      "durableMs": 333
+    },
+    {
+      "fault": "200 ms added latency on node 1 for 5 s",
+      "recoveredMs": 1106,
+      "durableMs": 1106
+    },
+    {
+      "fault": "reconnect storm (all clients drop at once)",
+      "recoveredMs": 222,
+      "durableMs": 222
+    },
+    {
+      "fault": "SIGKILL node 19101, restart after 3 s",
+      "recoveredMs": 2698,
+      "durableMs": 2448
+    },
+    {
+      "fault": "restart Redis",
+      "recoveredMs": 36,
+      "durableMs": 36
+    },
+    {
+      "fault": "stop PostgreSQL for 4 s",
+      "recoveredMs": 0,
+      "durableMs": 5815
+    },
+    {
+      "fault": "SIGKILL node 19102, restart after 1.5 s",
+      "recoveredMs": 1599,
+      "durableMs": 1535
+    }
+  ],
+  "inserts": 7088,
+  "allSaved": true,
+  "converged": true,
+  "missingOrDuplicated": 0,
+  "databaseMatches": true
+}
+exit 0
+ 21:04:01 up 26 min,  0 user,  load average: 41.97, 37.90, 26.57

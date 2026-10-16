@@ -21,7 +21,9 @@ export interface BusMessage {
 
 export type ControlEvent =
   | { type: "membership"; workspaceId: string; userId: string; role: string | null } // role null = removed
-  | { type: "document-deleted"; docId: string };
+  | { type: "document-deleted"; docId: string }
+  | { type: "session-revoked"; tokenHash: string } // hex SHA-256 of the session token
+  | { type: "user-sessions-revoked"; userId: string };
 
 export interface Bus {
   readonly nodeId: string;

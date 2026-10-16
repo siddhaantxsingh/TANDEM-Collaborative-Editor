@@ -1,0 +1,169 @@
+ 18:12:11 up 6 min,  0 user,  load average: 8.62, 2.59, 0.89
+
+ RUN  v5.0.3 /home/user/tandem-collaborative-editor
+
+ ❯ packages/server/test/security.test.ts (11 tests | 1 failed) 6069ms
+   ❯ operational endpoints (4)
+     × metrics need the bearer token when one is configured 38ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/server/test/security.test.ts > operational endpoints > metrics need the bearer token when one is configured
+AssertionError: expected '# HELP tandem_http_requests_total HTT…' to contain 'tandem_db_query_seconds_count'
+
+- Expected
++ Received
+
+- tandem_db_query_seconds_count
++ # HELP tandem_http_requests_total HTTP requests by route and status
++ # TYPE tandem_http_requests_total counter
++ tandem_http_requests_total{route="metrics",status="404"} 2
++ # HELP tandem_ws_connections_total WebSocket connections accepted
++ # TYPE tandem_ws_connections_total counter
++ tandem_ws_connections_total 0
++ # HELP tandem_ws_rejected_total WebSocket upgrades rejected by reason
++ # TYPE tandem_ws_rejected_total counter
++ tandem_ws_rejected_total 0
++ # HELP tandem_messages_in_total Protocol messages received by type
++ # TYPE tandem_messages_in_total counter
++ tandem_messages_in_total 0
++ # HELP tandem_updates_applied_total Document updates applied
++ # TYPE tandem_updates_applied_total counter
++ tandem_updates_applied_total 0
++ # HELP tandem_updates_rejected_total Document updates rejected by reason
++ # TYPE tandem_updates_rejected_total counter
++ tandem_updates_rejected_total 0
++ # HELP tandem_updates_pending_total Client updates with missing causal dependencies (stored raw, integrated later)
++ # TYPE tandem_updates_pending_total counter
++ tandem_updates_pending_total 0
++ # HELP tandem_updates_persisted_total Document updates written to PostgreSQL
++ # TYPE tandem_updates_persisted_total counter
++ tandem_updates_persisted_total 0
++ # HELP tandem_persist_failures_total Failed persistence attempts (retried)
++ # TYPE tandem_persist_failures_total counter
++ tandem_persist_failures_total 0
++ # HELP tandem_compactions_total Document compactions
++ # TYPE tandem_compactions_total counter
++ tandem_compactions_total 0
++ # HELP tandem_rate_limited_total Connections closed for exceeding rate limits, by kind (messages, operations)
++ # TYPE tandem_rate_limited_total counter
++ tandem_rate_limited_total 0
++ # HELP tandem_backpressure_disconnects_total Connections closed by backpressure, by reason (slow_consumer, server_budget, inbound_queue)
++ # TYPE tandem_backpressure_disconnects_total counter
++ tandem_backpressure_disconnects_total 0
++ # HELP tandem_protocol_errors_total Connections closed for protocol errors, by reason
++ # TYPE tandem_protocol_errors_total counter
++ tandem_protocol_errors_total 0
++ # HELP tandem_reconnects_total Connections that were reconnects of an earlier one (Hello resume > 0)
++ # TYPE tandem_reconnects_total counter
++ tandem_reconnects_total 0
++ # HELP tandem_pubsub_messages_in_total Messages received from other nodes
++ # TYPE tandem_pubsub_messages_in_total counter
++ tandem_pubsub_messages_in_total 0
++ # HELP tandem_durability_sweep_repairs_total Updates found in memory but not in the database and written by the sweep
++ # TYPE tandem_durability_sweep_repairs_total counter
++ tandem_durability_sweep_repairs_total 0
++ # HELP tandem_anti_entropy_repairs_total Replicas found missing updates (from the database or another node) and repaired
++ # TYPE tandem_anti_entropy_repairs_total counter
++ tandem_anti_entropy_repairs_total 0
++ # HELP tandem_stale_connections_closed_total Connections closed as stale (heartbeat timeout, superseded by a reconnect)
++ # TYPE tandem_stale_connections_closed_total counter
++ tandem_stale_connections_closed_total 0
++ # HELP tandem_login_failures_total Failed login attempts
++ # TYPE tandem_login_failures_total counter
++ tandem_login_failures_total 0
++ # HELP tandem_active_connections Open WebSocket connections
++ # TYPE tandem_active_connections gauge
++ tandem_active_connections 0
++ # HELP tandem_active_users Distinct users with an open WebSocket connection
++ # TYPE tandem_active_users gauge
++ tandem_active_users 0
++ # HELP tandem_send_queue_bytes Bytes queued for sending on all connections (outside the socket buffers)
++ # TYPE tandem_send_queue_bytes gauge
++ tandem_send_queue_bytes 0
++ # HELP tandem_reassembly_bytes Bytes of partially received fragmented messages on all connections
++ # TYPE tandem_reassembly_bytes gauge
++ tandem_reassembly_bytes 0
++ # HELP tandem_inbound_queue_bytes Bytes received but not yet handled on all connections
++ # TYPE tandem_inbound_queue_bytes gauge
++ tandem_inbound_queue_bytes 0
++ # HELP tandem_active_documents Documents loaded in memory
++ # TYPE tandem_active_documents gauge
++ tandem_active_documents 0
++ # HELP tandem_pending_persist_updates Updates applied but not yet durable
++ # TYPE tandem_pending_persist_updates gauge
++ tandem_pending_persist_updates 0
++ # HELP tandem_persist_seconds Time to write a batch of updates
++ # TYPE tandem_persist_seconds histogram
++ # HELP tandem_ack_latency_seconds Time from receiving a client update to acknowledging it (durable)
++ # TYPE tandem_ack_latency_seconds histogram
++ # HELP tandem_http_request_seconds HTTP API request duration by route
++ # TYPE tandem_http_request_seconds histogram
++ tandem_http_request_seconds_bucket{route="metrics",le="0.0005"} 2
++ tandem_http_request_seconds_bucket{route="metrics",le="0.001"} 2
++ tandem_http_request_seconds_bucket{route="metrics",le="0.0025"} 2
++ tandem_http_request_seconds_bucket{route="metrics",le="0.005"} 2
++ tandem_http_request_seconds_bucket{route="metrics",le="0.01"} 2
++ tandem_http_request_seconds_bucket{route="metrics",le="0.025"} 2
++ tandem_http_request_seconds_bucket{route="metrics",le="0.05"} 2
++ tandem_http_request_seconds_bucket{route="metrics",le="0.1"} 2
++ tandem_http_request_seconds_bucket{route="metrics",le="0.25"} 2
++ tandem_http_request_seconds_bucket{route="metrics",le="0.5"} 2
++ tandem_http_request_seconds_bucket{route="metrics",le="1"} 2
++ tandem_http_request_seconds_bucket{route="metrics",le="2.5"} 2
++ tandem_http_request_seconds_bucket{route="metrics",le="5"} 2
++ tandem_http_request_seconds_bucket{route="metrics",le="10"} 2
++ tandem_http_request_seconds_bucket{route="metrics",le="+Inf"} 2
++ tandem_http_request_seconds_sum{route="metrics"} 0.000555694
++ tandem_http_request_seconds_count{route="metrics"} 2
++ # HELP tandem_db_query_seconds PostgreSQL query duration (pool queries)
++ # TYPE tandem_db_query_seconds histogram
++ # HELP tandem_redis_seconds Redis command duration by operation
++ # TYPE tandem_redis_seconds histogram
++ # HELP tandem_compaction_seconds Duration of a document compaction (snapshot write)
++ # TYPE tandem_compaction_seconds histogram
++ # HELP tandem_sweep_seconds Duration of a durability / anti-entropy sweep of one document
++ # TYPE tandem_sweep_seconds histogram
++ # HELP tandem_messages_out_total Protocol messages sent by type
++ # TYPE tandem_messages_out_total counter
++ tandem_messages_out_total 0
++ # HELP tandem_errors_total Internal errors by component
++ # TYPE tandem_errors_total counter
++ tandem_errors_total 0
++ # HELP tandem_log_lines_total Log lines by level (warn and error)
++ # TYPE tandem_log_lines_total counter
++ tandem_log_lines_total 0
++ # HELP tandem_sessions_expired_deleted_total Expired sessions deleted
++ # TYPE tandem_sessions_expired_deleted_total counter
++ tandem_sessions_expired_deleted_total 0
++ # HELP tandem_process_cpu_seconds Process CPU time (user + system)
++ # TYPE tandem_process_cpu_seconds gauge
++ tandem_process_cpu_seconds 2.810778
++ # HELP tandem_process_resident_memory_bytes Resident set size
++ # TYPE tandem_process_resident_memory_bytes gauge
++ tandem_process_resident_memory_bytes 111820800
++ # HELP tandem_process_heap_used_bytes V8 heap in use
++ # TYPE tandem_process_heap_used_bytes gauge
++ tandem_process_heap_used_bytes 28986272
++ # HELP tandem_event_loop_lag_p99_seconds 99th percentile event-loop delay since the last scrape
++ # TYPE tandem_event_loop_lag_p99_seconds gauge
++ tandem_event_loop_lag_p99_seconds 5.11e-7
++
+
+ ❯ packages/server/test/security.test.ts:181:20
+    179|     const text = await ok.text();
+    180|     for (const m of ["tandem_active_connections", "tandem_ack_latency_…
+    181|       expect(text).toContain(m);
+       |                    ^
+    182|     // Health stays public (load balancers).
+    183|     expect((await fetch(t.base + "/health/ready")).status).toBe(200);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 10 passed (11)
+      Tests  1 failed | 87 passed (88)
+   Start at  18:12:13
+   Duration  112.03s (tests 96%, import 3%, transform 1%)
+
+exit 1

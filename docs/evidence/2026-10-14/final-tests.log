@@ -1,0 +1,28 @@
+ 08:27:15 up 15 min,  0 user,  load average: 29.60, 22.63, 11.65
+> tsc --noEmit -p .
+
+typecheck exit 0
+     × splits large Sync2/Update messages and reassembles them exactly 79405ms
+ FAIL  packages/protocol/test/codec.test.ts > fragmentation > splits large Sync2/Update messages and reassembles them exactly
+ Test Files  1 failed | 13 passed (14)
+      Tests  1 failed | 99 passed (100)
+   Duration  395.77s (tests 96%, import 3%, transform 1%)
+vitest exit 1
+
+  ✓  1 e2e/editor.spec.ts:30:1 › two users collaborate in real time, offline edits merge, viewers are read-only (14.1s)
+  ✓  2 e2e/offline.spec.ts:23:1 › reload while offline: edits survive, are shown as unsaved, and are saved after reconnecting (5.5s)
+  ✓  3 e2e/offline.spec.ts:61:1 › browser restart while offline: edits made before the restart are saved after reconnecting (6.8s)
+
+  3 passed (36.7s)
+playwright exit 0
+ 08:34:56 up 22 min,  0 user,  load average: 26.79, 26.62, 17.91
+# codec.test.ts alone (it timed out at 60 s in the full run at load avg ~30)
+ 08:35:01 up 22 min,  0 user,  load average: 26.32, 26.53, 17.93
+ FAIL  packages/protocol/test/codec.test.ts > fragmentation > splits large Sync2/Update messages and reassembles them exactly
+      Tests  1 failed | 6 passed (7)
+   Duration  85.27s (tests 99%, transform 1%)
+ 08:36:31 up 24 min,  0 user,  load average: 26.60, 26.43, 18.68
+# after replacing the multi-MB deep toEqual with Buffer.equals
+ 08:36:40 up 24 min,  0 user,  load average: 27.38, 26.60, 18.82
+      Tests  7 passed (7)
+   Duration  17.84s (tests 96%, transform 3%, import 1%)

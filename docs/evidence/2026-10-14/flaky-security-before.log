@@ -1,0 +1,12 @@
+# security.test.ts run 3x back-to-back BEFORE fix (shared Redis, same 60 s window)
+      Tests  11 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  packages/server/test/security.test.ts > rate limits behind a proxy and across nodes > login attempts are counted across nodes (Redis)
+AssertionError: expected [ 429, 429, 429, 429 ] to deeply equal [ 401, 401, 429, 429 ]
+      Tests  1 failed | 10 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  packages/server/test/security.test.ts > rate limits behind a proxy and across nodes > login attempts are counted across nodes (Redis)
+AssertionError: expected [ 429, 429, 429, 429 ] to deeply equal [ 401, 401, 429, 429 ]
+ FAIL  packages/server/test/security.test.ts > operational endpoints > metrics need the bearer token when one is configured
+AssertionError: expected '# HELP tandem_http_requests_total HTT…' to contain 'tandem_db_query_seconds_count'
+      Tests  2 failed | 9 passed (11)
